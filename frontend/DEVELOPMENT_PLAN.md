@@ -1,0 +1,610 @@
+# Frontend Development Plan
+## نظام توزيع المدرسين والحصص - Frontend Application
+
+---
+
+## PHASE 1: Project Foundation & UI Framework (Week 1)
+
+### MODULE 1.1: Project Setup
+**Objectives:**
+- Establish Next.js project with TypeScript
+- Configure styling and UI framework
+- Set up project structure
+
+**Tasks:**
+- [x] Initialize Next.js with App Router
+- [x] Configure TypeScript
+- [x] Set up Tailwind CSS
+- [x] Configure RTL (Right-to-Left) support for Arabic
+- [ ] Install and configure UI component library (shadcn/ui)
+- [ ] Set up Arabic fonts (Cairo, Tajawal)
+- [ ] Configure path aliases
+- [ ] Set up environment variables
+
+**Deliverables:**
+- Configured Next.js project
+- RTL-ready styling system
+- Arabic typography setup
+- Development environment ready
+
+### MODULE 1.2: Core Layout & Navigation
+**Objectives:**
+- Create the main application layout
+- Implement responsive navigation
+- Set up page structure
+
+**Tasks:**
+- [x] Create root layout with RTL support
+- [x] Build Sidebar navigation component
+- [ ] Create responsive header component
+- [ ] Implement mobile navigation (hamburger menu)
+- [ ] Add breadcrumb navigation
+- [ ] Create loading states/skeletons
+- [ ] Build error boundary components
+- [ ] Implement 404 and error pages
+
+**Deliverables:**
+- Main application layout
+- Responsive sidebar
+- Mobile-friendly navigation
+- Loading and error states
+
+### MODULE 1.3: Shared Components Library
+**Objectives:**
+- Build reusable UI components
+- Ensure consistent design system
+
+**Tasks:**
+- [ ] Create Button component (variants: primary, secondary, danger)
+- [ ] Create Input component (text, number, time)
+- [ ] Create Select/Dropdown component
+- [ ] Create Modal/Dialog component
+- [ ] Create Table component with sorting
+- [ ] Create Card component
+- [ ] Create Badge/Tag component
+- [ ] Create Toast/Notification component
+- [ ] Create Confirmation dialog component
+- [ ] Create Empty state component
+
+**Deliverables:**
+- Reusable component library
+- Component documentation
+- Storybook setup (optional)
+
+**Success Criteria - Phase 1:**
+- Application loads with Arabic RTL layout
+- Navigation works on all screen sizes
+- Shared components are reusable and consistent
+
+---
+
+## PHASE 2: Data Management & API Integration (Week 2)
+
+### MODULE 2.1: State Management Setup
+**Objectives:**
+- Set up global state management
+- Configure data fetching patterns
+
+**Tasks:**
+- [ ] Install and configure Zustand or React Context
+- [ ] Create stores for each entity (teachers, grades, etc.)
+- [ ] Set up React Query for server state
+- [ ] Configure query caching strategies
+- [ ] Implement optimistic updates
+- [ ] Create loading state management
+- [ ] Set up error state handling
+
+**Deliverables:**
+- State management architecture
+- Data fetching hooks
+- Caching configuration
+
+### MODULE 2.2: API Client & Services
+**Objectives:**
+- Create type-safe API client
+- Implement all API service functions
+
+**Tasks:**
+- [x] Create base API fetch utility
+- [ ] Implement Teachers service (CRUD)
+- [ ] Implement Grades service (CRUD)
+- [ ] Implement Sections service (CRUD)
+- [ ] Implement Rooms service (CRUD)
+- [ ] Implement Periods service (CRUD)
+- [ ] Implement Schedule service (CRUD + conflict check)
+- [ ] Add request/response interceptors
+- [ ] Implement error handling
+- [ ] Add retry logic for failed requests
+
+**Deliverables:**
+- Complete API service layer
+- Type-safe API functions
+- Error handling utilities
+
+### MODULE 2.3: Custom Hooks
+**Objectives:**
+- Create reusable data hooks
+- Simplify component data access
+
+**Tasks:**
+- [ ] Create useTeachers hook
+- [ ] Create useGrades hook
+- [ ] Create useSections hook
+- [ ] Create useRooms hook
+- [ ] Create usePeriods hook
+- [ ] Create useSchedule hook
+- [ ] Create useConflictCheck hook
+- [ ] Create useToast hook
+- [ ] Create useModal hook
+- [ ] Create useLocalStorage hook
+
+**Deliverables:**
+- Custom hooks library
+- Data fetching hooks
+- Utility hooks
+
+**Success Criteria - Phase 2:**
+- All API calls working correctly
+- Data caching reduces API calls
+- Error states handled gracefully
+
+---
+
+## PHASE 3: Entity Management Pages (Week 3-4)
+
+### MODULE 3.1: Teachers Management Page
+**Objectives:**
+- Complete teachers CRUD interface
+- Implement table with actions
+
+**Tasks:**
+- [x] Create teachers list page
+- [x] Build teachers table component
+- [x] Implement "Add Teacher" modal
+- [ ] Add form validation (required fields, types)
+- [ ] Implement edit teacher functionality
+- [ ] Implement delete with confirmation
+- [ ] Add search/filter functionality
+- [ ] Add pagination
+- [ ] Show teacher's weekly period count
+- [ ] Add workdays selection (multi-select)
+- [ ] Implement bulk delete
+- [ ] Add export functionality
+
+**Deliverables:**
+- Complete teachers management page
+- CRUD operations working
+- Search and filter working
+
+### MODULE 3.2: Grades & Sections Management
+**Objectives:**
+- Build hierarchical grade-section interface
+- Show tree structure (Grade → Sections)
+
+**Tasks:**
+- [x] Create grades page
+- [x] Create sections page
+- [ ] Build grade-section tree view
+- [ ] Implement "Add Grade" modal
+- [ ] Implement "Add Section" modal (linked to grade)
+- [ ] Show section count per grade
+- [ ] Implement inline editing
+- [ ] Add drag-and-drop reordering (optional)
+- [ ] Handle cascade delete warning
+- [ ] Add search functionality
+
+**Deliverables:**
+- Grades management page
+- Sections management with tree view
+- Parent-child relationship handling
+
+### MODULE 3.3: Rooms Management Page
+**Objectives:**
+- Implement rooms CRUD interface
+- Categorize by room type
+
+**Tasks:**
+- [x] Create rooms page
+- [x] Build rooms grid/cards layout
+- [x] Implement room type badges (regular, lab, computer)
+- [ ] Implement "Add Room" modal
+- [ ] Add room capacity input
+- [ ] Implement edit functionality
+- [ ] Add filter by room type
+- [ ] Show room utilization indicator (future)
+- [ ] Add room availability view
+
+**Deliverables:**
+- Complete rooms management page
+- Room type categorization
+- Visual room cards
+
+### MODULE 3.4: Periods Management Page
+**Objectives:**
+- Implement period time slots interface
+- Visual timeline representation
+
+**Tasks:**
+- [x] Create periods page
+- [x] Build timeline/list view
+- [x] Implement "Add Period" modal
+- [ ] Add time picker components
+- [ ] Validate time ranges (start < end)
+- [ ] Prevent overlapping periods
+- [ ] Show visual timeline
+- [ ] Implement drag to reorder
+- [ ] Add quick preset times
+
+**Deliverables:**
+- Complete periods management page
+- Time validation
+- Visual timeline
+
+**Success Criteria - Phase 3:**
+- All entity CRUD operations working
+- Form validation prevents invalid data
+- UI is intuitive and responsive
+
+---
+
+## PHASE 4: Schedule Management (Core Feature) (Week 5-6)
+
+### MODULE 4.1: Weekly Schedule View
+**Objectives:**
+- Build the main schedule grid
+- Display weekly timetable
+
+**Tasks:**
+- [x] Create schedule page
+- [x] Build weekly grid component (days × periods)
+- [x] Implement color coding per teacher
+- [ ] Add schedule entry cards
+- [ ] Show teacher, subject, section, room in cell
+- [ ] Implement cell click to add entry
+- [ ] Add hover states with full details
+- [ ] Implement responsive grid for mobile
+- [ ] Add week navigation (if multi-week)
+- [ ] Implement print-friendly view
+
+**Deliverables:**
+- Weekly schedule grid
+- Color-coded entries
+- Interactive cells
+
+### MODULE 4.2: Daily Schedule View
+**Objectives:**
+- Provide focused daily view
+- Detailed single-day schedule
+
+**Tasks:**
+- [x] Build daily view toggle
+- [x] Implement day selector
+- [ ] Create expanded daily cards
+- [ ] Show more details per entry
+- [ ] Add quick actions (edit, delete)
+- [ ] Implement timeline view
+- [ ] Add current time indicator
+- [ ] Show breaks/free periods
+
+**Deliverables:**
+- Daily schedule view
+- Day navigation
+- Detailed entry cards
+
+### MODULE 4.3: Schedule Entry Form
+**Objectives:**
+- Create intuitive schedule entry modal
+- Integrate conflict checking
+
+**Tasks:**
+- [x] Build schedule entry modal
+- [x] Add teacher dropdown (with subject)
+- [x] Add section dropdown
+- [x] Add room dropdown
+- [ ] Implement real-time conflict checking
+- [ ] Show conflict warnings before save
+- [ ] Display available options only
+- [ ] Add subject override field
+- [ ] Implement quick duplicate entry
+- [ ] Add entry editing functionality
+- [ ] Confirm before delete
+
+**Deliverables:**
+- Schedule entry form
+- Real-time conflict feedback
+- CRUD operations for entries
+
+### MODULE 4.4: Conflict Prevention UI
+**Objectives:**
+- Visualize conflicts clearly
+- Prevent invalid entries
+
+**Tasks:**
+- [x] Implement client-side conflict check
+- [ ] Show conflict type (teacher/room/section)
+- [ ] Highlight conflicting entries in grid
+- [ ] Display Arabic error messages
+- [ ] Suggest alternative slots
+- [ ] Show teacher's other assignments
+- [ ] Show room's other bookings
+- [ ] Add conflict resolution wizard (optional)
+
+**Deliverables:**
+- Visual conflict indicators
+- Clear error messaging
+- Conflict prevention UI
+
+### MODULE 4.5: Schedule Filters & Views
+**Objectives:**
+- Multiple schedule perspectives
+- Filter by different criteria
+
+**Tasks:**
+- [ ] Add filter by teacher (show teacher's schedule)
+- [ ] Add filter by section (show section's schedule)
+- [ ] Add filter by room (show room's schedule)
+- [ ] Add filter by grade
+- [ ] Implement "My Schedule" view concept
+- [ ] Add empty slots highlighting
+- [ ] Show utilization statistics
+- [ ] Implement comparison view
+
+**Deliverables:**
+- Multiple filter options
+- Different schedule perspectives
+- Utilization insights
+
+**Success Criteria - Phase 4:**
+- Schedule displays correctly
+- Conflicts are prevented
+- CRUD operations work smoothly
+- Mobile-friendly schedule view
+
+---
+
+## PHASE 5: Dashboard & Analytics (Week 7)
+
+### MODULE 5.1: Main Dashboard
+**Objectives:**
+- Create informative dashboard
+- Show key statistics
+
+**Tasks:**
+- [x] Create dashboard page
+- [x] Add statistics cards (counts)
+- [ ] Fetch real data from API
+- [ ] Show teacher count
+- [ ] Show total scheduled periods
+- [ ] Show room utilization percentage
+- [ ] Add recent activity feed
+- [ ] Implement quick actions
+- [ ] Add schedule completeness indicator
+
+**Deliverables:**
+- Dashboard with live statistics
+- Quick action buttons
+- Activity overview
+
+### MODULE 5.2: Reports & Insights
+**Objectives:**
+- Provide useful reports
+- Help administrators make decisions
+
+**Tasks:**
+- [ ] Create reports page
+- [ ] Teacher workload report
+- [ ] Room utilization report
+- [ ] Empty slots report
+- [ ] Grade-wise schedule summary
+- [ ] Add charts/visualizations (Chart.js)
+- [ ] Implement date range filtering
+- [ ] Add export to PDF option
+
+**Deliverables:**
+- Reports page
+- Visual charts
+- Export functionality
+
+**Success Criteria - Phase 5:**
+- Dashboard shows accurate data
+- Reports are useful and exportable
+- Performance is optimized
+
+---
+
+## PHASE 6: Polish & Production Ready (Week 8)
+
+### MODULE 6.1: UX Improvements
+**Objectives:**
+- Enhance user experience
+- Add quality-of-life features
+
+**Tasks:**
+- [ ] Add keyboard shortcuts
+- [ ] Implement undo/redo for schedule changes
+- [ ] Add drag-and-drop for schedule entries
+- [ ] Implement copy/paste schedule entries
+- [ ] Add bulk operations UI
+- [ ] Improve loading states
+- [ ] Add success animations
+- [ ] Implement auto-save
+
+**Deliverables:**
+- Enhanced UX features
+- Keyboard navigation
+- Smooth animations
+
+### MODULE 6.2: Accessibility & i18n
+**Objectives:**
+- Ensure accessibility compliance
+- Support Arabic language fully
+
+**Tasks:**
+- [ ] Add ARIA labels
+- [ ] Ensure keyboard navigation
+- [ ] Test with screen readers
+- [ ] Verify color contrast
+- [ ] Add focus indicators
+- [ ] Create Arabic translation file
+- [ ] Support number formatting (Arabic numerals option)
+- [ ] Add date formatting (Hijri option)
+
+**Deliverables:**
+- WCAG 2.1 AA compliance
+- Full Arabic support
+- Accessible components
+
+### MODULE 6.3: Performance Optimization
+**Objectives:**
+- Optimize for speed
+- Reduce bundle size
+
+**Tasks:**
+- [ ] Implement code splitting
+- [ ] Add lazy loading for routes
+- [ ] Optimize images
+- [ ] Implement virtual scrolling for large lists
+- [ ] Add service worker for offline support
+- [ ] Configure CDN caching
+- [ ] Run Lighthouse audits
+- [ ] Fix performance issues
+
+**Deliverables:**
+- Performance score >90
+- Optimized bundle
+- Fast initial load
+
+### MODULE 6.4: Testing & Quality
+**Objectives:**
+- Ensure reliability
+- Prevent regressions
+
+**Tasks:**
+- [ ] Write unit tests for components
+- [ ] Write integration tests for pages
+- [ ] Test form validations
+- [ ] Test API error handling
+- [ ] Cross-browser testing
+- [ ] Mobile device testing
+- [ ] Set up E2E tests (Playwright)
+- [ ] Configure CI/CD
+
+**Deliverables:**
+- Test suite
+- CI/CD pipeline
+- Quality assurance passed
+
+**Success Criteria - Phase 6:**
+- All features working smoothly
+- Performance score >90
+- No critical bugs
+- Accessible and localized
+
+---
+
+## Dependencies
+
+| Dependency | Required By | Risk Level |
+|------------|-------------|------------|
+| Backend API | All data features | High |
+| Shared components | All pages | Medium |
+| API services | All pages | High |
+| State management | Data-dependent features | Medium |
+| Teachers/Grades/Sections | Schedule page | High |
+
+---
+
+## Risk Management
+
+### High Risks
+| Risk | Impact | Mitigation |
+|------|--------|------------|
+| Backend API not ready | Features blocked | Mock API, parallel development |
+| Complex schedule grid | Poor performance | Virtual scrolling, optimization |
+| Conflict UI confusion | User frustration | Clear messaging, UX testing |
+
+### Medium Risks
+| Risk | Impact | Mitigation |
+|------|--------|------------|
+| Mobile responsiveness | Poor mobile UX | Mobile-first design, testing |
+| Arabic RTL issues | Layout breaks | RTL testing, Tailwind RTL plugin |
+| State management complexity | Bugs, maintenance | Simple patterns, documentation |
+
+### Low Risks
+| Risk | Impact | Mitigation |
+|------|--------|------------|
+| Browser compatibility | Some users affected | Modern browsers only, polyfills |
+| Third-party library issues | Feature delays | Vetted libraries, alternatives |
+
+---
+
+## Success Criteria Summary
+
+| Phase | Key Metrics |
+|-------|-------------|
+| Phase 1 | RTL layout working, components ready |
+| Phase 2 | API integration complete, data flows correctly |
+| Phase 3 | All entity pages functional, CRUD working |
+| Phase 4 | Schedule fully functional, conflicts prevented |
+| Phase 5 | Dashboard accurate, reports useful |
+| Phase 6 | Performance >90, tests pass, production ready |
+
+---
+
+## Next Steps
+
+1. **Immediate:** Install shadcn/ui components
+2. **Short-term:** Set up React Query for data fetching
+3. **Medium-term:** Complete entity management pages
+4. **Long-term:** Polish, optimize, and prepare for production
+
+---
+
+## Tech Stack Summary
+
+- **Framework:** Next.js 15+ (App Router)
+- **Language:** TypeScript 5.x
+- **Styling:** Tailwind CSS 4.x
+- **UI Components:** shadcn/ui
+- **State Management:** Zustand + React Query
+- **Forms:** React Hook Form + Zod
+- **Charts:** Chart.js / Recharts
+- **Testing:** Vitest + Playwright
+- **Icons:** Lucide React
+
+---
+
+## File Structure
+
+```
+frontend/
+├── src/
+│   ├── app/                    # Next.js App Router
+│   │   ├── (dashboard)/        # Dashboard layout group
+│   │   │   ├── page.tsx        # Home/Dashboard
+│   │   │   ├── teachers/
+│   │   │   ├── grades/
+│   │   │   ├── sections/
+│   │   │   ├── rooms/
+│   │   │   ├── periods/
+│   │   │   └── schedule/
+│   │   ├── layout.tsx
+│   │   └── globals.css
+│   ├── components/
+│   │   ├── ui/                 # Base UI components
+│   │   ├── layout/             # Layout components
+│   │   ├── teachers/           # Teacher-specific components
+│   │   ├── schedule/           # Schedule-specific components
+│   │   └── shared/             # Shared components
+│   ├── hooks/                  # Custom hooks
+│   ├── lib/                    # Utilities
+│   │   ├── api.ts              # API client
+│   │   ├── utils.ts            # Helper functions
+│   │   └── validations.ts      # Zod schemas
+│   ├── stores/                 # Zustand stores
+│   ├── types/                  # TypeScript types
+│   └── constants/              # Constants, translations
+├── public/
+├── tests/
+└── package.json
+```
