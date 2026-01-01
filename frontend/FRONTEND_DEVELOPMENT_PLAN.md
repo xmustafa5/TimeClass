@@ -160,13 +160,13 @@
 - [x] Create teachers list page
 - [x] Build teachers table component
 - [x] Implement "Add Teacher" modal
-- [ ] Add form validation (required fields, types)
-- [ ] Implement edit teacher functionality
-- [ ] Implement delete with confirmation
-- [ ] Add search/filter functionality
+- [x] Add form validation (required fields, types) - React Hook Form + Zod
+- [x] Implement edit teacher functionality
+- [x] Implement delete with confirmation
+- [x] Add search/filter functionality
 - [ ] Add pagination
-- [ ] Show teacher's weekly period count
-- [ ] Add workdays selection (multi-select)
+- [x] Show teacher's weekly period count
+- [x] Add workdays selection (multi-select)
 - [ ] Implement bulk delete
 - [ ] Add export functionality
 
@@ -183,18 +183,18 @@
 **Tasks:**
 - [x] Create grades page
 - [x] Create sections page
-- [ ] Build grade-section tree view
-- [ ] Implement "Add Grade" modal
-- [ ] Implement "Add Section" modal (linked to grade)
-- [ ] Show section count per grade
-- [ ] Implement inline editing
+- [x] Build grade cards with section count badges
+- [x] Implement "Add Grade" modal
+- [x] Implement "Add Section" modal (linked to grade)
+- [x] Show section count per grade
+- [x] Implement edit/delete functionality
 - [ ] Add drag-and-drop reordering (optional)
 - [ ] Handle cascade delete warning
-- [ ] Add search functionality
+- [x] Add filter by grade (sections page)
 
 **Deliverables:**
 - Grades management page
-- Sections management with tree view
+- Sections management with grade filter
 - Parent-child relationship handling
 
 ### MODULE 3.3: Rooms Management Page
@@ -206,10 +206,12 @@
 - [x] Create rooms page
 - [x] Build rooms grid/cards layout
 - [x] Implement room type badges (regular, lab, computer)
-- [ ] Implement "Add Room" modal
-- [ ] Add room capacity input
-- [ ] Implement edit functionality
-- [ ] Add filter by room type
+- [x] Implement "Add Room" modal
+- [x] Add room capacity input
+- [x] Implement edit functionality
+- [x] Add filter by room type
+- [x] Add search functionality
+- [x] Show stats (total, labs, computer rooms)
 - [ ] Show room utilization indicator (future)
 - [ ] Add room availability view
 
@@ -225,12 +227,15 @@
 
 **Tasks:**
 - [x] Create periods page
-- [x] Build timeline/list view
+- [x] Build timeline/list view with visual connectors
 - [x] Implement "Add Period" modal
-- [ ] Add time picker components
-- [ ] Validate time ranges (start < end)
-- [ ] Prevent overlapping periods
-- [ ] Show visual timeline
+- [x] Add time picker components (HTML5 time input)
+- [x] Validate time ranges (start < end) - Zod validation
+- [ ] Prevent overlapping periods (server-side)
+- [x] Show visual timeline with numbered circles
+- [x] Show Arabic ordinal names (الأولى، الثانية...)
+- [x] Format time in Arabic (ص/م)
+- [x] Show stats (total periods, total hours, avg duration)
 - [ ] Implement drag to reorder
 - [ ] Add quick preset times
 
@@ -565,7 +570,7 @@
 - **Language:** TypeScript 5.x
 - **Styling:** Tailwind CSS 4.x
 - **UI Components:** shadcn/ui
-- **State Management:** Zustand + React Query
+- **State Management:** TanStack Query (React Query) for server state
 - **Forms:** React Hook Form + Zod
 - **Charts:** Chart.js / Recharts
 - **Testing:** Vitest + Playwright

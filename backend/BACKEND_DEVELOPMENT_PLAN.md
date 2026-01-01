@@ -323,12 +323,12 @@ BEFORE STARTING THIS PHASE:
 - Improve data entry efficiency
 
 **Tasks:**
-- [ ] Implement POST /api/teachers/bulk (bulk create)
+- [x] Implement POST /api/teachers/bulk (bulk create)
 - [x] Implement POST /api/schedule/bulk (bulk create with conflict check)
 - [x] Add transaction support for bulk operations
 - [x] Implement rollback on partial failure
 - [ ] Add progress tracking for large operations
-- [ ] Write unit tests
+- [x] Write unit tests
 
 **Recommended Packages:**
 | Package | Purpose | Context7 Lookup |
@@ -347,12 +347,12 @@ BEFORE STARTING THIS PHASE:
 - Support multiple formats
 
 **Tasks:**
-- [ ] Implement GET /api/schedule/export/json
-- [ ] Implement GET /api/schedule/export/csv
-- [ ] Add date range filtering for export
-- [ ] Add teacher/section filtering for export
+- [x] Implement GET /api/schedule/export/json
+- [x] Implement GET /api/schedule/export/csv
+- [x] Implement GET /api/schedule/export/weekly (weekly schedule export)
+- [x] Add teacher/section/grade/room filtering for export
 - [ ] Implement schedule template export
-- [ ] Write unit tests
+- [x] Write unit tests
 
 **Recommended Packages:**
 | Package | Purpose | Context7 Lookup |
@@ -372,12 +372,12 @@ BEFORE STARTING THIS PHASE:
 - Help identify scheduling patterns
 
 **Tasks:**
-- [ ] Implement GET /api/stats/teachers (periods per teacher)
-- [ ] Implement GET /api/stats/rooms (room utilization)
-- [ ] Implement GET /api/stats/overview (general statistics)
-- [ ] Calculate teacher workload distribution
-- [ ] Identify unused time slots
-- [ ] Write unit tests
+- [x] Implement GET /api/stats/teachers (periods per teacher)
+- [x] Implement GET /api/stats/rooms (room utilization)
+- [x] Implement GET /api/stats/overview (general statistics)
+- [x] Calculate teacher workload distribution
+- [x] Identify unused time slots (GET /api/stats/unused-slots)
+- [x] Write unit tests
 
 **Deliverables:**
 - Statistics endpoints
@@ -585,9 +585,9 @@ Phase 5:
 
 ## Next Steps
 
-1. **Immediate:** Start Phase 4 - Bulk Operations & Data Export
-2. **Short-term:** Implement statistics and analytics endpoints
-3. **Medium-term:** Add security features (rate limiting, helmet)
+1. **Immediate:** Start Phase 5 - Security, Testing & Documentation
+2. **Short-term:** Add rate limiting and security headers
+3. **Medium-term:** Write E2E tests and performance tests
 4. **Long-term:** Add authentication, multi-school support
 
 ## Completed Phases
@@ -597,6 +597,7 @@ Phase 5:
 | Phase 1 | ✅ Complete | N/A |
 | Phase 2 | ✅ Complete | 116 tests |
 | Phase 3 | ✅ Complete | 139 tests (23 new) |
+| Phase 4 | ✅ Complete | 157 tests (18 new) |
 
 ---
 
