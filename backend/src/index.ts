@@ -1,8 +1,8 @@
 import Fastify from 'fastify';
-import cors from '@fastify/cors';
 import sensible from '@fastify/sensible';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
+import { registerSecurityPlugins } from './lib/security.js';
 import { teachersRoutes } from './routes/teachers.js';
 import { gradesRoutes } from './routes/grades.js';
 import { sectionsRoutes } from './routes/sections.js';
@@ -12,8 +12,23 @@ import { scheduleRoutes } from './routes/schedule.js';
 import { statsRoutes } from './routes/stats.js';
 import { disconnectPrisma } from './lib/prisma.js';
 
+const isDevelopment = process.env.NODE_ENV !== 'production';
+
 const server = Fastify({
-  logger: true,
+  logger: {
+    level: isDevelopment ? 'info' : 'warn',
+    transport: isDevelopment
+      ? {
+          target: 'pino-pretty',
+          options: {
+            translateTime: 'HH:MM:ss Z',
+            ignore: 'pid,hostname',
+          },
+        }
+      : undefined,
+  },
+  // Trust proxy for proper IP detection behind reverse proxy
+  trustProxy: true,
 });
 
 // Register Swagger for API documentation
@@ -26,8 +41,8 @@ await server.register(swagger, {
     },
     servers: [
       {
-        url: 'http://localhost:8080',
-        description: 'Development server',
+        url: isDevelopment ? 'http://localhost:8080' : 'https://api.your-domain.com',
+        description: isDevelopment ? 'Development server' : 'Production server',
       },
     ],
     tags: [
@@ -51,12 +66,24 @@ await server.register(swaggerUi, {
   },
 });
 
-// Register plugins
-await server.register(cors, {
-  origin: ['http://localhost:3000'], // Next.js frontend
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+// Register security plugins (helmet, rate-limit, cors)
+await registerSecurityPlugins(server, {
+  isDevelopment,
+  cors: {
+    origin: isDevelopment
+      ? ['http://localhost:3000', 'http://localhost:5173']
+      : ['https://your-production-domain.com'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    credentials: true,
+  },
+  rateLimit: {
+    global: true,
+    max: isDevelopment ? 1000 : 100, // More lenient in development
+    timeWindow: '1 minute',
+  },
 });
 
+// Register sensible plugin for better error handling
 await server.register(sensible);
 
 // Register routes
@@ -68,13 +95,26 @@ await server.register(periodsRoutes, { prefix: '/api/periods' });
 await server.register(scheduleRoutes, { prefix: '/api/schedule' });
 await server.register(statsRoutes, { prefix: '/api/stats' });
 
-// Health check route
-server.get('/api/health', async () => {
-  return { status: 'ok', timestamp: new Date().toISOString() };
-});
+// Health check route (excluded from rate limiting)
+server.get(
+  '/api/health',
+  {
+    config: {
+      rateLimit: false, // Disable rate limiting for health checks
+    },
+  },
+  async () => {
+    return {
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      environment: isDevelopment ? 'development' : 'production',
+    };
+  }
+);
 
 // Graceful shutdown
 const gracefulShutdown = async () => {
+  server.log.info('Shutting down gracefully...');
   await server.close();
   await disconnectPrisma();
   process.exit(0);
@@ -86,9 +126,11 @@ process.on('SIGINT', gracefulShutdown);
 // Start server
 const start = async () => {
   try {
-    await server.listen({ port: 8080, host: '0.0.0.0' });
-    console.log('Server running at http://localhost:8080');
-    console.log('API Documentation at http://localhost:8080/docs');
+    const port = parseInt(process.env.PORT || '8080', 10);
+    await server.listen({ port, host: '0.0.0.0' });
+    console.log(`Server running at http://localhost:${port}`);
+    console.log(`API Documentation at http://localhost:${port}/docs`);
+    console.log(`Environment: ${isDevelopment ? 'development' : 'production'}`);
   } catch (err) {
     server.log.error(err);
     process.exit(1);

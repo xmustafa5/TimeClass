@@ -164,11 +164,11 @@
 - [x] Implement edit teacher functionality
 - [x] Implement delete with confirmation
 - [x] Add search/filter functionality
-- [ ] Add pagination
+- [x] Add pagination with page size selector
 - [x] Show teacher's weekly period count
 - [x] Add workdays selection (multi-select)
-- [ ] Implement bulk delete
-- [ ] Add export functionality
+- [x] Implement bulk delete with selection checkboxes
+- [x] Add export functionality (CSV & JSON)
 
 **Deliverables:**
 - Complete teachers management page
@@ -189,7 +189,7 @@
 - [x] Show section count per grade
 - [x] Implement edit/delete functionality
 - [ ] Add drag-and-drop reordering (optional)
-- [ ] Handle cascade delete warning
+- [x] Handle cascade delete warning (shows section count)
 - [x] Add filter by grade (sections page)
 
 **Deliverables:**
@@ -231,7 +231,7 @@
 - [x] Implement "Add Period" modal
 - [x] Add time picker components (HTML5 time input)
 - [x] Validate time ranges (start < end) - Zod validation
-- [ ] Prevent overlapping periods (server-side)
+- [x] Prevent overlapping periods (client-side real-time validation)
 - [x] Show visual timeline with numbered circles
 - [x] Show Arabic ordinal names (الأولى، الثانية...)
 - [x] Format time in Arabic (ص/م)
