@@ -18,7 +18,6 @@ const globalShortcuts: Omit<ShortcutHandler, 'handler'>[] = [
   { key: 't', alt: true, description: 'الانتقال للمدرسين' },
   { key: 'g', alt: true, description: 'الانتقال للصفوف' },
   { key: 's', alt: true, description: 'الانتقال للشعب' },
-  { key: 'r', alt: true, description: 'الانتقال للقاعات' },
   { key: 'p', alt: true, description: 'الانتقال للحصص' },
   { key: 'j', alt: true, description: 'الانتقال للجدول' },
   { key: '/', ctrl: true, description: 'فتح البحث' },
@@ -76,10 +75,6 @@ export function useKeyboardShortcuts(customShortcuts: ShortcutHandler[] = []) {
           case 's':
             event.preventDefault();
             router.push('/sections');
-            break;
-          case 'r':
-            event.preventDefault();
-            router.push('/rooms');
             break;
           case 'p':
             event.preventDefault();

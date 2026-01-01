@@ -27,7 +27,6 @@ import {
 import { useTeachers } from '@/hooks/use-teachers';
 import { useGrades } from '@/hooks/use-grades';
 import { useSections } from '@/hooks/use-sections';
-import { useRooms } from '@/hooks/use-rooms';
 import { usePeriods } from '@/hooks/use-periods';
 import type { ScheduleEntry, WeekDay } from '@/types';
 import type { ScheduleEntryFormData } from '@/lib/validations';
@@ -49,7 +48,6 @@ export default function SchedulePage() {
   const { data: teachers = [], isLoading: teachersLoading } = useTeachers();
   const { data: grades = [], isLoading: gradesLoading } = useGrades();
   const { data: sections = [], isLoading: sectionsLoading } = useSections();
-  const { data: rooms = [], isLoading: roomsLoading } = useRooms();
   const { data: periods = [], isLoading: periodsLoading } = usePeriods();
 
   // Mutations
@@ -58,7 +56,7 @@ export default function SchedulePage() {
   const deleteEntry = useDeleteScheduleEntry();
 
   const isLoading = entriesLoading || teachersLoading || gradesLoading ||
-                    sectionsLoading || roomsLoading || periodsLoading;
+                    sectionsLoading || periodsLoading;
 
   // Filter entries based on active filters
   const filteredEntries = useMemo(() => {
@@ -66,7 +64,6 @@ export default function SchedulePage() {
       if (filters.teacherId && entry.teacherId !== filters.teacherId) return false;
       if (filters.gradeId && entry.gradeId !== filters.gradeId) return false;
       if (filters.sectionId && entry.sectionId !== filters.sectionId) return false;
-      if (filters.roomId && entry.roomId !== filters.roomId) return false;
       return true;
     });
   }, [entries, filters]);
@@ -185,7 +182,6 @@ export default function SchedulePage() {
           teachers={teachers}
           grades={grades}
           sections={sections}
-          rooms={rooms}
           viewMode={viewMode}
           selectedDay={selectedDay}
           onViewModeChange={setViewMode}
@@ -207,7 +203,6 @@ export default function SchedulePage() {
             periods={periods}
             teachers={teachers}
             sections={sections}
-            rooms={rooms}
             viewMode={viewMode}
             selectedDay={selectedDay}
             onSlotClick={handleSlotClick}
@@ -263,7 +258,6 @@ export default function SchedulePage() {
           teachers={teachers}
           grades={grades}
           sections={sections}
-          rooms={rooms}
           periods={periods}
           existingEntries={entries}
           isLoading={isSubmitting}

@@ -12,14 +12,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { X, Filter } from 'lucide-react';
-import type { Teacher, Grade, Section, Room, WeekDay } from '@/types';
+import type { Teacher, Grade, Section, WeekDay } from '@/types';
 import { weekDaysArabic } from '@/types';
 
 export interface ScheduleFilters {
   teacherId?: string;
   gradeId?: string;
   sectionId?: string;
-  roomId?: string;
 }
 
 interface ScheduleFiltersProps {
@@ -28,7 +27,6 @@ interface ScheduleFiltersProps {
   teachers: Teacher[];
   grades: Grade[];
   sections: Section[];
-  rooms: Room[];
   viewMode: 'weekly' | 'daily';
   selectedDay: WeekDay;
   onViewModeChange: (mode: 'weekly' | 'daily') => void;
@@ -43,7 +41,6 @@ export const ScheduleFiltersPanel = memo(function ScheduleFiltersPanel({
   teachers,
   grades,
   sections,
-  rooms,
   viewMode,
   selectedDay,
   onViewModeChange,
@@ -172,24 +169,6 @@ export const ScheduleFiltersPanel = memo(function ScheduleFiltersPanel({
               </SelectContent>
             </Select>
 
-            {/* Room filter */}
-            <Select
-              value={filters.roomId || 'all'}
-              onValueChange={(v) => updateFilter('roomId', v === 'all' ? undefined : v)}
-            >
-              <SelectTrigger className="w-[150px]">
-                <SelectValue placeholder="القاعة" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">جميع القاعات</SelectItem>
-                {rooms.map((room) => (
-                  <SelectItem key={room.id} value={room.id}>
-                    {room.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
             {/* Clear filters button */}
             {hasActiveFilters && (
               <Button
@@ -231,15 +210,6 @@ export const ScheduleFiltersPanel = memo(function ScheduleFiltersPanel({
                   <X
                     className="h-3 w-3 cursor-pointer"
                     onClick={() => updateFilter('sectionId', undefined)}
-                  />
-                </Badge>
-              )}
-              {filters.roomId && (
-                <Badge variant="secondary" className="gap-1">
-                  القاعة: {rooms.find((r) => r.id === filters.roomId)?.name}
-                  <X
-                    className="h-3 w-3 cursor-pointer"
-                    onClick={() => updateFilter('roomId', undefined)}
                   />
                 </Badge>
               )}

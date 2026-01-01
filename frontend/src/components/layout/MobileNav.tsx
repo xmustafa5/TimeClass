@@ -7,7 +7,6 @@ import {
   Users,
   GraduationCap,
   Layers,
-  DoorOpen,
   Clock,
   Calendar
 } from 'lucide-react';
@@ -19,7 +18,6 @@ const navigation = [
   { name: 'المدرسون', href: '/teachers', icon: Users },
   { name: 'الصفوف', href: '/grades', icon: GraduationCap },
   { name: 'الشُعَب', href: '/sections', icon: Layers },
-  { name: 'القاعات', href: '/rooms', icon: DoorOpen },
   { name: 'الحصص', href: '/periods', icon: Clock },
   { name: 'الجدول الدراسي', href: '/schedule', icon: Calendar },
 ];

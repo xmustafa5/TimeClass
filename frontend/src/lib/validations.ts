@@ -4,10 +4,6 @@ import { z } from 'zod';
 export const weekDays = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday'] as const;
 export const weekDaySchema = z.enum(weekDays);
 
-// Room types enum
-export const roomTypes = ['regular', 'lab', 'computer'] as const;
-export const roomTypeSchema = z.enum(roomTypes);
-
 // Teacher Schema
 export const teacherSchema = z.object({
   fullName: z
@@ -51,21 +47,6 @@ export const sectionSchema = z.object({
 
 export type SectionFormData = z.infer<typeof sectionSchema>;
 
-// Room Schema
-export const roomSchema = z.object({
-  name: z
-    .string()
-    .min(1, 'اسم القاعة مطلوب')
-    .max(50, 'اسم القاعة يجب ألا يتجاوز 50 حرف'),
-  capacity: z
-    .number()
-    .min(1, 'السعة يجب أن تكون 1 على الأقل')
-    .max(500, 'السعة يجب ألا تتجاوز 500'),
-  type: roomTypeSchema,
-});
-
-export type RoomFormData = z.infer<typeof roomSchema>;
-
 // Period Schema
 export const periodSchema = z.object({
   number: z
@@ -100,7 +81,6 @@ export const scheduleEntrySchema = z.object({
   gradeId: z.string().min(1, 'يجب اختيار الصف'),
   sectionId: z.string().min(1, 'يجب اختيار الشعبة'),
   periodId: z.string().min(1, 'يجب اختيار الحصة'),
-  roomId: z.string().min(1, 'يجب اختيار القاعة'),
   day: weekDaySchema,
   subject: z.string().min(1, 'المادة مطلوبة'),
 });

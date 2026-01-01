@@ -2,11 +2,9 @@ import type {
   Teacher,
   Grade,
   Section,
-  Room,
   Period,
   ScheduleEntry,
   ApiResponse,
-  RoomType,
   WeekDay,
 } from '@/types';
 
@@ -130,30 +128,6 @@ export const sectionsApi = {
     fetchApi<ApiResponse<null>>(`/sections/${id}`, { method: 'DELETE' }),
 };
 
-// ==================== Rooms API ====================
-export type CreateRoomInput = Omit<Room, 'id' | 'createdAt' | 'updatedAt'>;
-export type UpdateRoomInput = Partial<CreateRoomInput>;
-
-export const roomsApi = {
-  getAll: () =>
-    fetchApi<ApiResponse<Room[]>>('/rooms'),
-
-  getByType: (type: RoomType) =>
-    fetchApi<ApiResponse<Room[]>>(`/rooms/by-type/${type}`),
-
-  getById: (id: string) =>
-    fetchApi<ApiResponse<Room>>(`/rooms/${id}`),
-
-  create: (data: CreateRoomInput) =>
-    fetchApi<ApiResponse<Room>>('/rooms', { method: 'POST', data }),
-
-  update: (id: string, data: UpdateRoomInput) =>
-    fetchApi<ApiResponse<Room>>(`/rooms/${id}`, { method: 'PUT', data }),
-
-  delete: (id: string) =>
-    fetchApi<ApiResponse<null>>(`/rooms/${id}`, { method: 'DELETE' }),
-};
-
 // ==================== Periods API ====================
 export type CreatePeriodInput = Omit<Period, 'id' | 'createdAt' | 'updatedAt'>;
 export type UpdatePeriodInput = Partial<CreatePeriodInput>;
@@ -182,7 +156,6 @@ export type UpdateScheduleInput = Partial<CreateScheduleInput>;
 export interface ConflictCheckInput {
   teacherId: string;
   sectionId: string;
-  roomId: string;
   periodId: string;
   day: WeekDay;
   excludeId?: string; // For updates, exclude current entry
@@ -191,7 +164,7 @@ export interface ConflictCheckInput {
 export interface ConflictResult {
   hasConflict: boolean;
   conflicts: {
-    type: 'teacher' | 'room' | 'section';
+    type: 'teacher' | 'section';
     message: string;
     conflictingEntry?: ScheduleEntry;
   }[];
@@ -209,9 +182,6 @@ export const scheduleApi = {
 
   getBySection: (sectionId: string) =>
     fetchApi<ApiResponse<ScheduleEntry[]>>(`/schedule/by-section/${sectionId}`),
-
-  getByRoom: (roomId: string) =>
-    fetchApi<ApiResponse<ScheduleEntry[]>>(`/schedule/by-room/${roomId}`),
 
   checkConflicts: (data: ConflictCheckInput) =>
     fetchApi<ApiResponse<ConflictResult>>('/schedule/check-conflicts', { method: 'POST', data }),
@@ -234,7 +204,6 @@ export interface DashboardStats {
   teachersCount: number;
   gradesCount: number;
   sectionsCount: number;
-  roomsCount: number;
   periodsCount: number;
   scheduleEntriesCount: number;
 }

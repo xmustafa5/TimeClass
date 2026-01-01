@@ -9,7 +9,7 @@ import {
   EmptySlot,
   getTeacherColor,
 } from './ScheduleEntryCard';
-import type { ScheduleEntry, Teacher, Section, Room, Period, WeekDay } from '@/types';
+import type { ScheduleEntry, Teacher, Section, Period, WeekDay } from '@/types';
 import { weekDaysArabic } from '@/types';
 
 const weekDays: WeekDay[] = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday'];
@@ -19,7 +19,6 @@ interface ScheduleGridProps {
   periods: Period[];
   teachers: Teacher[];
   sections: Section[];
-  rooms: Room[];
   viewMode: 'weekly' | 'daily';
   selectedDay: WeekDay;
   onSlotClick: (day: WeekDay, periodId: string) => void;
@@ -34,7 +33,6 @@ const ScheduleCell = memo(function ScheduleCell({
   periodId,
   teacher,
   section,
-  room,
   colorClass,
   isCompact,
   onSlotClick,
@@ -45,19 +43,17 @@ const ScheduleCell = memo(function ScheduleCell({
   periodId: string;
   teacher?: Teacher;
   section?: Section;
-  room?: Room;
   colorClass: string;
   isCompact: boolean;
   onSlotClick: (day: WeekDay, periodId: string) => void;
   onEntryClick: (entry: ScheduleEntry) => void;
 }) {
-  if (entry && teacher && section && room) {
+  if (entry && teacher && section) {
     return (
       <ScheduleEntryCard
         teacherName={teacher.fullName}
         subject={entry.subject}
         sectionName={section.name}
-        roomName={room.name}
         colorClass={colorClass}
         onClick={() => onEntryClick(entry)}
         isCompact={isCompact}
@@ -73,7 +69,6 @@ export const ScheduleGrid = memo(function ScheduleGrid({
   periods,
   teachers,
   sections,
-  rooms,
   viewMode,
   selectedDay,
   onSlotClick,
@@ -106,10 +101,6 @@ export const ScheduleGrid = memo(function ScheduleGrid({
   const sectionsMap = useMemo(
     () => new Map(sections.map((s) => [s.id, s])),
     [sections]
-  );
-  const roomsMap = useMemo(
-    () => new Map(rooms.map((r) => [r.id, r])),
-    [rooms]
   );
 
   const getEntry = (day: WeekDay, periodId: string) => {
@@ -163,7 +154,6 @@ export const ScheduleGrid = memo(function ScheduleGrid({
                     const entry = getEntry(day, period.id);
                     const teacher = entry ? teachersMap.get(entry.teacherId) : undefined;
                     const section = entry ? sectionsMap.get(entry.sectionId) : undefined;
-                    const room = entry ? roomsMap.get(entry.roomId) : undefined;
                     const colorClass = entry
                       ? getTeacherColor(entry.teacherId, teacherIds)
                       : '';
@@ -182,7 +172,6 @@ export const ScheduleGrid = memo(function ScheduleGrid({
                           periodId={period.id}
                           teacher={teacher}
                           section={section}
-                          room={room}
                           colorClass={colorClass}
                           isCompact={isCompact || viewMode === 'weekly'}
                           onSlotClick={onSlotClick}

@@ -17,7 +17,6 @@ const routeNames: Record<string, string> = {
   teachers: 'المدرسون',
   grades: 'الصفوف',
   sections: 'الشُعَب',
-  rooms: 'القاعات',
   periods: 'الحصص',
   schedule: 'الجدول الدراسي',
 };

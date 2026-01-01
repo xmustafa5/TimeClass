@@ -8,13 +8,12 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { User, BookOpen, MapPin, Users } from 'lucide-react';
+import { User, BookOpen, Users } from 'lucide-react';
 
 interface ScheduleEntryCardProps {
   teacherName: string;
   subject: string;
   sectionName: string;
-  roomName: string;
   colorClass: string;
   onClick?: () => void;
   isCompact?: boolean;
@@ -43,7 +42,6 @@ export const ScheduleEntryCard = memo(function ScheduleEntryCard({
   teacherName,
   subject,
   sectionName,
-  roomName,
   colorClass,
   onClick,
   isCompact = false,
@@ -84,10 +82,6 @@ export const ScheduleEntryCard = memo(function ScheduleEntryCard({
               <div className="flex items-center gap-2">
                 <Users className="h-4 w-4" />
                 <span>{sectionName}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <MapPin className="h-4 w-4" />
-                <span>{roomName}</span>
               </div>
             </div>
           </TooltipContent>

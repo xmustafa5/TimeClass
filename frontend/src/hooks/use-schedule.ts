@@ -16,7 +16,6 @@ export const scheduleKeys = {
   byDay: (day: WeekDay) => [...scheduleKeys.all, 'byDay', day] as const,
   byTeacher: (teacherId: string) => [...scheduleKeys.all, 'byTeacher', teacherId] as const,
   bySection: (sectionId: string) => [...scheduleKeys.all, 'bySection', sectionId] as const,
-  byRoom: (roomId: string) => [...scheduleKeys.all, 'byRoom', roomId] as const,
   details: () => [...scheduleKeys.all, 'detail'] as const,
   detail: (id: string) => [...scheduleKeys.details(), id] as const,
   conflicts: () => [...scheduleKeys.all, 'conflicts'] as const,
@@ -68,18 +67,6 @@ export function useScheduleBySection(sectionId: string) {
       return response.data ?? [];
     },
     enabled: !!sectionId,
-  });
-}
-
-// Get schedule by room
-export function useScheduleByRoom(roomId: string) {
-  return useQuery({
-    queryKey: scheduleKeys.byRoom(roomId),
-    queryFn: async () => {
-      const response = await scheduleApi.getByRoom(roomId);
-      return response.data ?? [];
-    },
-    enabled: !!roomId,
   });
 }
 

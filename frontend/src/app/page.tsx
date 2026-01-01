@@ -6,7 +6,6 @@ import {
   Users,
   GraduationCap,
   BookOpen,
-  DoorOpen,
   Clock,
   Calendar,
   TrendingUp,
@@ -24,7 +23,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useTeachers } from '@/hooks/use-teachers';
 import { useGrades } from '@/hooks/use-grades';
 import { useSections } from '@/hooks/use-sections';
-import { useRooms } from '@/hooks/use-rooms';
 import { usePeriods } from '@/hooks/use-periods';
 import { useSchedule } from '@/hooks/use-schedule';
 import { cn } from '@/lib/utils';
@@ -129,12 +127,11 @@ export default function DashboardPage() {
   const { data: teachers = [], isLoading: teachersLoading } = useTeachers();
   const { data: grades = [], isLoading: gradesLoading } = useGrades();
   const { data: sections = [], isLoading: sectionsLoading } = useSections();
-  const { data: rooms = [], isLoading: roomsLoading } = useRooms();
   const { data: periods = [], isLoading: periodsLoading } = usePeriods();
   const { data: scheduleEntries = [], isLoading: scheduleLoading } = useSchedule();
 
   const isLoading = teachersLoading || gradesLoading || sectionsLoading ||
-                    roomsLoading || periodsLoading || scheduleLoading;
+                    periodsLoading || scheduleLoading;
 
   // Calculate statistics
   const stats = useMemo(() => {
@@ -157,22 +154,6 @@ export default function DashboardPage() {
     const overloadedTeachers = teacherWorkloads.filter((w) => w.percentage > 100).length;
     const underloadedTeachers = teacherWorkloads.filter((w) => w.percentage < 80 && w.percentage > 0).length;
     const fullyScheduledTeachers = teacherWorkloads.filter((w) => w.percentage >= 80 && w.percentage <= 100).length;
-
-    // Room utilization (max possible = 5 days × periods per day)
-    const maxRoomSlots = 5 * periods.length;
-    const roomUtilizations = rooms.map((room) => {
-      const usedSlots = scheduleEntries.filter((e) => e.roomId === room.id).length;
-      return {
-        room,
-        used: usedSlots,
-        max: maxRoomSlots,
-        percentage: maxRoomSlots > 0 ? (usedSlots / maxRoomSlots) * 100 : 0,
-      };
-    });
-
-    const avgRoomUtilization = roomUtilizations.length > 0
-      ? roomUtilizations.reduce((sum, r) => sum + r.percentage, 0) / roomUtilizations.length
-      : 0;
 
     // Empty slots count
     const emptySlots = totalSlots - filledSlots;
@@ -197,12 +178,10 @@ export default function DashboardPage() {
       overloadedTeachers,
       underloadedTeachers,
       fullyScheduledTeachers,
-      roomUtilizations,
-      avgRoomUtilization,
       totalScheduledHours: Math.floor(totalScheduledMinutes / 60),
       totalScheduledMinutes: totalScheduledMinutes % 60,
     };
-  }, [teachers, sections, periods, rooms, scheduleEntries]);
+  }, [teachers, sections, periods, scheduleEntries]);
 
   // Quick actions
   const quickActions = [
@@ -224,12 +203,6 @@ export default function DashboardPage() {
       icon: Clock,
       description: 'تعديل أوقات الحصص',
     },
-    {
-      name: 'إضافة قاعة',
-      href: '/rooms',
-      icon: DoorOpen,
-      description: 'أضف قاعة جديدة',
-    },
   ];
 
   // System status items
@@ -245,9 +218,6 @@ export default function DashboardPage() {
     if (sections.length === 0) {
       items.push({ type: 'warning', message: 'لم يتم إضافة شعب بعد' });
     }
-    if (rooms.length === 0) {
-      items.push({ type: 'warning', message: 'لم يتم إضافة قاعات بعد' });
-    }
     if (stats.overloadedTeachers > 0) {
       items.push({
         type: 'error',
@@ -262,7 +232,7 @@ export default function DashboardPage() {
     }
 
     return items;
-  }, [teachers, periods, sections, rooms, scheduleEntries, stats.overloadedTeachers]);
+  }, [teachers, periods, sections, scheduleEntries, stats.overloadedTeachers]);
 
   return (
     <div className="space-y-6">
@@ -275,7 +245,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Main Stats Grid */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <StatsCard
           title="المدرسون"
           value={teachers.length}
@@ -301,14 +271,6 @@ export default function DashboardPage() {
           isLoading={sectionsLoading}
         />
         <StatsCard
-          title="القاعات"
-          value={rooms.length}
-          icon={DoorOpen}
-          href="/rooms"
-          color="bg-orange-500"
-          isLoading={roomsLoading}
-        />
-        <StatsCard
           title="الحصص"
           value={periods.length}
           icon={Clock}
@@ -328,21 +290,13 @@ export default function DashboardPage() {
       </div>
 
       {/* Progress Cards Row */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <ProgressCard
           title="اكتمال الجدول"
           current={stats.filledSlots}
           total={stats.totalSlots}
           icon={Calendar}
           color="bg-blue-500"
-          isLoading={isLoading}
-        />
-        <ProgressCard
-          title="متوسط استخدام القاعات"
-          current={Math.round(stats.avgRoomUtilization)}
-          total={100}
-          icon={DoorOpen}
-          color="bg-orange-500"
           isLoading={isLoading}
         />
         <ProgressCard
@@ -540,10 +494,6 @@ export default function DashboardPage() {
             <div className="flex items-center gap-2 text-muted-foreground">
               <CheckCircle2 className="h-5 w-5 text-green-500" />
               <span>منع تضارب حصص المدرسين</span>
-            </div>
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <CheckCircle2 className="h-5 w-5 text-green-500" />
-              <span>منع استخدام نفس القاعة في وقت واحد</span>
             </div>
             <div className="flex items-center gap-2 text-muted-foreground">
               <CheckCircle2 className="h-5 w-5 text-green-500" />

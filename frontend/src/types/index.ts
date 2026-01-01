@@ -29,18 +29,6 @@ export interface Section {
   updatedAt: Date;
 }
 
-// القاعات - Rooms
-export interface Room {
-  id: string;
-  name: string;               // اسم/رقم القاعة
-  capacity: number;           // السعة
-  type: RoomType;             // نوع القاعة
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export type RoomType = 'regular' | 'lab' | 'computer';  // عادية، مختبر، حاسوب
-
 // الحصص - Periods
 export interface Period {
   id: string;
@@ -61,7 +49,6 @@ export interface ScheduleEntry {
   gradeId: string;            // الصف
   sectionId: string;          // الشعبة
   periodId: string;           // الحصة
-  roomId: string;             // القاعة
   day: WeekDay;               // اليوم
   subject: string;            // المادة
   createdAt: Date;
@@ -83,11 +70,4 @@ export const weekDaysArabic: Record<WeekDay, string> = {
   tuesday: 'الثلاثاء',
   wednesday: 'الأربعاء',
   thursday: 'الخميس',
-};
-
-// Room Types Labels (Arabic)
-export const roomTypesArabic: Record<RoomType, string> = {
-  regular: 'عادية',
-  lab: 'مختبر',
-  computer: 'حاسوب',
 };

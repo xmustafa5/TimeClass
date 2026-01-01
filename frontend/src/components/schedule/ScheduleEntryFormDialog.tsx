@@ -29,12 +29,12 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { scheduleEntrySchema, ScheduleEntryFormData } from '@/lib/validations';
-import type { Teacher, Section, Room, Period, ScheduleEntry, WeekDay, Grade } from '@/types';
+import type { Teacher, Section, Period, ScheduleEntry, WeekDay, Grade } from '@/types';
 import { weekDaysArabic } from '@/types';
-import { Loader2, AlertTriangle, User, Users, MapPin, Clock } from 'lucide-react';
+import { Loader2, AlertTriangle, User, Users, Clock } from 'lucide-react';
 
 interface ConflictInfo {
-  type: 'teacher' | 'room' | 'section';
+  type: 'teacher' | 'section';
   message: string;
   conflictingEntry?: ScheduleEntry;
 }
@@ -49,7 +49,6 @@ interface ScheduleEntryFormDialogProps {
   teachers: Teacher[];
   grades: Grade[];
   sections: Section[];
-  rooms: Room[];
   periods: Period[];
   existingEntries: ScheduleEntry[];
   isLoading?: boolean;
@@ -65,7 +64,6 @@ export function ScheduleEntryFormDialog({
   teachers,
   grades,
   sections,
-  rooms,
   periods,
   existingEntries,
   isLoading = false,
@@ -82,7 +80,6 @@ export function ScheduleEntryFormDialog({
       gradeId: '',
       sectionId: '',
       periodId: periodId,
-      roomId: '',
       day: day,
       subject: '',
     },
@@ -91,7 +88,6 @@ export function ScheduleEntryFormDialog({
   // Watch form values for real-time conflict checking
   const watchedTeacherId = form.watch('teacherId');
   const watchedSectionId = form.watch('sectionId');
-  const watchedRoomId = form.watch('roomId');
   const watchedGradeId = form.watch('gradeId');
 
   // Filter sections by selected grade
@@ -144,21 +140,6 @@ export function ScheduleEntryFormDialog({
       }
     }
 
-    // Check room conflict
-    if (watchedRoomId) {
-      const roomConflict = sameslotEntries.find(
-        (e) => e.roomId === watchedRoomId
-      );
-      if (roomConflict) {
-        const room = rooms.find((r) => r.id === watchedRoomId);
-        newConflicts.push({
-          type: 'room',
-          message: `القاعة "${room?.name}" مستخدمة في هذا الوقت`,
-          conflictingEntry: roomConflict,
-        });
-      }
-    }
-
     // Check section conflict
     if (watchedSectionId) {
       const sectionConflict = sameslotEntries.find(
@@ -178,13 +159,11 @@ export function ScheduleEntryFormDialog({
   }, [
     watchedTeacherId,
     watchedSectionId,
-    watchedRoomId,
     day,
     periodId,
     existingEntries,
     entry,
     teachers,
-    rooms,
     sections,
   ]);
 
@@ -198,7 +177,6 @@ export function ScheduleEntryFormDialog({
           gradeId: entry.gradeId,
           sectionId: entry.sectionId,
           periodId: entry.periodId,
-          roomId: entry.roomId,
           day: entry.day,
           subject: entry.subject,
         });
@@ -208,7 +186,6 @@ export function ScheduleEntryFormDialog({
           gradeId: '',
           sectionId: '',
           periodId: periodId,
-          roomId: '',
           day: day,
           subject: '',
         });
@@ -335,35 +312,6 @@ export function ScheduleEntryFormDialog({
                 )}
               />
             </div>
-
-            {/* Room selection */}
-            <FormField
-              control={form.control}
-              name="roomId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="flex items-center gap-2">
-                    <MapPin className="h-4 w-4" />
-                    القاعة
-                  </FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="اختر القاعة" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {rooms.map((room) => (
-                        <SelectItem key={room.id} value={room.id}>
-                          {room.name} (سعة: {room.capacity})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
 
             {/* Subject override */}
             <FormField
