@@ -86,11 +86,11 @@
 - Configure data fetching patterns
 
 **Tasks:**
-- [ ] Install TanStack Query (React Query)
-- [ ] Set up QueryClientProvider
-- [ ] Configure staleTime and gcTime for caching
-- [ ] Create loading state management
-- [ ] Set up error state handling
+- [x] Install TanStack Query (React Query)
+- [x] Set up QueryClientProvider
+- [x] Configure staleTime and gcTime for caching
+- [x] Create loading state management
+- [x] Set up error state handling
 - [ ] Use React Context for UI-only state (modals, filters)
 
 **Deliverables:**
@@ -105,15 +105,15 @@
 
 **Tasks:**
 - [x] Create base API fetch utility
-- [ ] Implement Teachers service (CRUD)
-- [ ] Implement Grades service (CRUD)
-- [ ] Implement Sections service (CRUD)
-- [ ] Implement Rooms service (CRUD)
-- [ ] Implement Periods service (CRUD)
-- [ ] Implement Schedule service (CRUD + conflict check)
-- [ ] Add request/response interceptors
-- [ ] Implement error handling
-- [ ] Add retry logic for failed requests
+- [x] Implement Teachers service (CRUD)
+- [x] Implement Grades service (CRUD)
+- [x] Implement Sections service (CRUD)
+- [x] Implement Rooms service (CRUD)
+- [x] Implement Periods service (CRUD)
+- [x] Implement Schedule service (CRUD + conflict check)
+- [x] Add request/response interceptors
+- [x] Implement error handling
+- [x] Add retry logic for failed requests
 
 **Deliverables:**
 - Complete API service layer
@@ -126,14 +126,14 @@
 - Simplify component data access
 
 **Tasks:**
-- [ ] Create useTeachers hook
-- [ ] Create useGrades hook
-- [ ] Create useSections hook
-- [ ] Create useRooms hook
-- [ ] Create usePeriods hook
-- [ ] Create useSchedule hook
-- [ ] Create useConflictCheck hook
-- [ ] Create useToast hook
+- [x] Create useTeachers hook
+- [x] Create useGrades hook
+- [x] Create useSections hook
+- [x] Create useRooms hook
+- [x] Create usePeriods hook
+- [x] Create useSchedule hook
+- [x] Create useConflictCheck hook
+- [x] Create useToast hook (using sonner)
 - [ ] Create useModal hook
 - [ ] Create useLocalStorage hook
 
