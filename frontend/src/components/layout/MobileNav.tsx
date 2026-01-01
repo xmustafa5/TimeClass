@@ -12,6 +12,7 @@ import {
   Calendar
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
 const navigation = [
   { name: 'الرئيسية', href: '/', icon: Home },
@@ -23,19 +24,19 @@ const navigation = [
   { name: 'الجدول الدراسي', href: '/schedule', icon: Calendar },
 ];
 
-export default function Sidebar() {
+export function MobileNav() {
   const pathname = usePathname();
 
   return (
-    <aside className="hidden lg:flex w-64 flex-col border-l bg-card">
-      <div className="p-6 border-b">
-        <h1 className="text-xl font-bold text-foreground">
-          نظام الجداول
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          إدارة توزيع المدرسين والحصص
-        </p>
-      </div>
+    <div className="flex h-full flex-col">
+      <SheetHeader className="border-b p-6">
+        <SheetTitle className="text-right">
+          <span className="text-xl font-bold">نظام الجداول</span>
+          <p className="text-sm font-normal text-muted-foreground mt-1">
+            إدارة توزيع المدرسين والحصص
+          </p>
+        </SheetTitle>
+      </SheetHeader>
 
       <nav className="flex-1 p-4">
         <ul className="space-y-1">
@@ -61,6 +62,6 @@ export default function Sidebar() {
           })}
         </ul>
       </nav>
-    </aside>
+    </div>
   );
 }
