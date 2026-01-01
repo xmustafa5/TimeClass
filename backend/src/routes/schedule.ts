@@ -11,6 +11,7 @@ import {
   weekDays,
 } from '../lib/validations.js';
 import { conflictService, type ConflictCheckResult } from '../services/conflict.js';
+import { exportService, type FlatScheduleEntry } from '../services/export.js';
 import { ApiResponse } from '../types/index.js';
 import type { ScheduleEntry } from '../generated/prisma/client.js';
 
@@ -700,6 +701,158 @@ export const scheduleRoutes: FastifyPluginAsync = async (fastify: FastifyInstanc
       } catch (error) {
         reply.status(500);
         return { success: false, error: 'فشل في جلب الجدول الأسبوعي' };
+      }
+    }
+  );
+
+  // ============ EXPORT SCHEDULE AS JSON ============
+  fastify.get<{
+    Querystring: {
+      day?: string;
+      teacherId?: string;
+      gradeId?: string;
+      sectionId?: string;
+      roomId?: string;
+    };
+  }>(
+    '/export/json',
+    {
+      schema: {
+        tags: ['schedule', 'export'],
+        summary: 'Export schedule as JSON',
+        description: 'Export schedule entries as JSON with optional filtering',
+        querystring: {
+          type: 'object',
+          properties: {
+            day: { type: 'string', enum: [...weekDays], description: 'Filter by day' },
+            teacherId: { type: 'string', format: 'uuid', description: 'Filter by teacher' },
+            gradeId: { type: 'string', format: 'uuid', description: 'Filter by grade' },
+            sectionId: { type: 'string', format: 'uuid', description: 'Filter by section' },
+            roomId: { type: 'string', format: 'uuid', description: 'Filter by room' },
+          },
+        },
+      },
+    },
+    async (request, reply): Promise<ApiResponse<{
+      data: FlatScheduleEntry[];
+      count: number;
+      exportedAt: string;
+    }>> => {
+      try {
+        const filters = {
+          day: request.query.day as typeof weekDays[number] | undefined,
+          teacherId: request.query.teacherId,
+          gradeId: request.query.gradeId,
+          sectionId: request.query.sectionId,
+          roomId: request.query.roomId,
+        };
+
+        const result = await exportService.exportAsJson(filters);
+
+        return { success: true, data: result };
+      } catch (error) {
+        reply.status(500);
+        return { success: false, error: 'فشل في تصدير الجدول' };
+      }
+    }
+  );
+
+  // ============ EXPORT SCHEDULE AS CSV ============
+  fastify.get<{
+    Querystring: {
+      day?: string;
+      teacherId?: string;
+      gradeId?: string;
+      sectionId?: string;
+      roomId?: string;
+    };
+  }>(
+    '/export/csv',
+    {
+      schema: {
+        tags: ['schedule', 'export'],
+        summary: 'Export schedule as CSV',
+        description: 'Export schedule entries as CSV with optional filtering. Returns CSV file download.',
+        querystring: {
+          type: 'object',
+          properties: {
+            day: { type: 'string', enum: [...weekDays], description: 'Filter by day' },
+            teacherId: { type: 'string', format: 'uuid', description: 'Filter by teacher' },
+            gradeId: { type: 'string', format: 'uuid', description: 'Filter by grade' },
+            sectionId: { type: 'string', format: 'uuid', description: 'Filter by section' },
+            roomId: { type: 'string', format: 'uuid', description: 'Filter by room' },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const filters = {
+          day: request.query.day as typeof weekDays[number] | undefined,
+          teacherId: request.query.teacherId,
+          gradeId: request.query.gradeId,
+          sectionId: request.query.sectionId,
+          roomId: request.query.roomId,
+        };
+
+        const csv = await exportService.exportAsCsv(filters);
+
+        // Set headers for CSV download
+        reply.header('Content-Type', 'text/csv; charset=utf-8');
+        reply.header('Content-Disposition', `attachment; filename="schedule-${new Date().toISOString().split('T')[0]}.csv"`);
+
+        return reply.send(csv);
+      } catch (error) {
+        reply.status(500);
+        return { success: false, error: 'فشل في تصدير الجدول كـ CSV' };
+      }
+    }
+  );
+
+  // ============ EXPORT WEEKLY SCHEDULE AS JSON ============
+  fastify.get<{
+    Querystring: {
+      teacherId?: string;
+      gradeId?: string;
+      sectionId?: string;
+      roomId?: string;
+    };
+  }>(
+    '/export/weekly',
+    {
+      schema: {
+        tags: ['schedule', 'export'],
+        summary: 'Export weekly schedule as JSON',
+        description: 'Export schedule grouped by day with optional filtering',
+        querystring: {
+          type: 'object',
+          properties: {
+            teacherId: { type: 'string', format: 'uuid', description: 'Filter by teacher' },
+            gradeId: { type: 'string', format: 'uuid', description: 'Filter by grade' },
+            sectionId: { type: 'string', format: 'uuid', description: 'Filter by section' },
+            roomId: { type: 'string', format: 'uuid', description: 'Filter by room' },
+          },
+        },
+      },
+    },
+    async (request, reply): Promise<ApiResponse<{
+      schedule: Record<string, FlatScheduleEntry[]>;
+      exportedAt: string;
+    }>> => {
+      try {
+        const filters = {
+          teacherId: request.query.teacherId,
+          gradeId: request.query.gradeId,
+          sectionId: request.query.sectionId,
+          roomId: request.query.roomId,
+        };
+
+        const result = await exportService.exportWeeklySchedule(filters);
+
+        return { success: true, data: result };
+      } catch (error) {
+        reply.status(500);
+        return { success: false, error: 'فشل في تصدير الجدول الأسبوعي' };
       }
     }
   );

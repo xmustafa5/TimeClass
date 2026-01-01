@@ -9,6 +9,7 @@ import { sectionsRoutes } from './routes/sections.js';
 import { roomsRoutes } from './routes/rooms.js';
 import { periodsRoutes } from './routes/periods.js';
 import { scheduleRoutes } from './routes/schedule.js';
+import { statsRoutes } from './routes/stats.js';
 import { disconnectPrisma } from './lib/prisma.js';
 
 const server = Fastify({

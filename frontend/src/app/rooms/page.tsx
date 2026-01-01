@@ -1,170 +1,293 @@
 'use client';
 
-import { useState } from 'react';
-import { RoomType, roomTypesArabic } from '@/types';
-
-interface Room {
-  id: string;
-  name: string;
-  capacity: number;
-  type: RoomType;
-}
+import { useState, useMemo } from 'react';
+import { Plus, DoorOpen, Search, Pencil, Trash2, MoreVertical, Users } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { RoomFormDialog } from '@/components/rooms/RoomFormDialog';
+import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
+import { EmptyState } from '@/components/shared/EmptyState';
+import { CardSkeleton } from '@/components/shared/PageSkeleton';
+import {
+  useRooms,
+  useCreateRoom,
+  useUpdateRoom,
+  useDeleteRoom,
+} from '@/hooks/use-rooms';
+import type { Room, RoomType } from '@/types';
+import { roomTypesArabic } from '@/types';
+import type { RoomFormData } from '@/lib/validations';
 
 const roomTypes: RoomType[] = ['regular', 'lab', 'computer'];
 
+const getTypeVariant = (type: RoomType): 'default' | 'secondary' | 'outline' => {
+  switch (type) {
+    case 'lab':
+      return 'default';
+    case 'computer':
+      return 'secondary';
+    default:
+      return 'outline';
+  }
+};
+
 export default function RoomsPage() {
-  const [rooms, setRooms] = useState<Room[]>([]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState({
-    name: '',
-    capacity: 30,
-    type: 'regular' as RoomType,
-  });
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterType, setFilterType] = useState<RoomType | ''>('');
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const newRoom: Room = {
-      id: crypto.randomUUID(),
-      ...formData,
-    };
-    setRooms([...rooms, newRoom]);
-    setFormData({ name: '', capacity: 30, type: 'regular' });
-    setIsModalOpen(false);
+  // Data fetching
+  const { data: rooms = [], isLoading } = useRooms();
+
+  // Mutations
+  const createRoom = useCreateRoom();
+  const updateRoom = useUpdateRoom();
+  const deleteRoom = useDeleteRoom();
+
+  // Filter rooms
+  const filteredRooms = useMemo(() => {
+    let result = rooms;
+
+    if (filterType) {
+      result = result.filter((r) => r.type === filterType);
+    }
+
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter((r) => r.name.toLowerCase().includes(query));
+    }
+
+    return result;
+  }, [rooms, filterType, searchQuery]);
+
+  // Handlers
+  const handleAdd = () => {
+    setSelectedRoom(null);
+    setIsFormOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    setRooms(rooms.filter(r => r.id !== id));
+  const handleEdit = (room: Room) => {
+    setSelectedRoom(room);
+    setIsFormOpen(true);
   };
 
-  const getTypeColor = (type: RoomType) => {
-    switch (type) {
-      case 'regular': return 'bg-gray-100 text-gray-700';
-      case 'lab': return 'bg-green-100 text-green-700';
-      case 'computer': return 'bg-blue-100 text-blue-700';
+  const handleDelete = (room: Room) => {
+    setSelectedRoom(room);
+    setIsDeleteOpen(true);
+  };
+
+  const handleFormSubmit = (data: RoomFormData) => {
+    if (selectedRoom) {
+      updateRoom.mutate(
+        { id: selectedRoom.id, data },
+        { onSuccess: () => setIsFormOpen(false) }
+      );
+    } else {
+      createRoom.mutate(data, {
+        onSuccess: () => setIsFormOpen(false),
+      });
     }
   };
+
+  const handleConfirmDelete = () => {
+    if (selectedRoom) {
+      deleteRoom.mutate(selectedRoom.id, {
+        onSuccess: () => {
+          setIsDeleteOpen(false);
+          setSelectedRoom(null);
+        },
+      });
+    }
+  };
+
+  const isSubmitting = createRoom.isPending || updateRoom.isPending;
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">القاعات</h1>
-          <p className="text-gray-600 mt-1">إدارة القاعات والمختبرات</p>
+          <h1 className="text-3xl font-bold">القاعات</h1>
+          <p className="text-muted-foreground mt-1">
+            إدارة القاعات والمختبرات وغرف الحاسوب
+          </p>
         </div>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          + إضافة قاعة
-        </button>
+        <Button onClick={handleAdd} className="gap-2 self-start">
+          <Plus className="h-4 w-4" />
+          إضافة قاعة
+        </Button>
+      </div>
+
+      {/* Stats */}
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">إجمالي القاعات</CardTitle>
+            <DoorOpen className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{rooms.length}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">المختبرات</CardTitle>
+            <DoorOpen className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {rooms.filter((r) => r.type === 'lab').length}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">غرف الحاسوب</CardTitle>
+            <DoorOpen className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {rooms.filter((r) => r.type === 'computer').length}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="البحث في القاعات..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pr-10"
+          />
+        </div>
+        <Select value={filterType} onValueChange={(v) => setFilterType(v as RoomType | '')}>
+          <SelectTrigger className="w-48">
+            <SelectValue placeholder="جميع الأنواع" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">جميع الأنواع</SelectItem>
+            {roomTypes.map((type) => (
+              <SelectItem key={type} value={type}>
+                {roomTypesArabic[type]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Rooms Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {rooms.length === 0 ? (
-          <div className="col-span-full bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center text-gray-500">
-            <p className="text-lg">لا توجد قاعات حالياً</p>
-            <p className="text-sm mt-2">اضغط على "إضافة قاعة" لإضافة قاعة جديدة</p>
-          </div>
-        ) : (
-          rooms.map((room) => (
-            <div
-              key={room.id}
-              className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow"
-            >
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900">{room.name}</h3>
-                  <p className="text-sm text-gray-500 mt-1">السعة: {room.capacity} طالب</p>
-                  <span className={`inline-block mt-2 px-3 py-1 rounded-full text-sm ${getTypeColor(room.type)}`}>
+      {isLoading ? (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {[...Array(6)].map((_, i) => (
+            <CardSkeleton key={i} />
+          ))}
+        </div>
+      ) : filteredRooms.length === 0 ? (
+        <Card>
+          <CardContent className="p-6">
+            {searchQuery || filterType ? (
+              <EmptyState
+                icon={Search}
+                title="لا توجد نتائج"
+                description="لم يتم العثور على قاعات تطابق بحثك أو الفلتر المحدد"
+              />
+            ) : (
+              <EmptyState
+                icon={DoorOpen}
+                title="لا توجد قاعات"
+                description="لم يتم إضافة أي قاعات بعد. اضغط على زر الإضافة للبدء."
+                action={{
+                  label: 'إضافة قاعة',
+                  onClick: handleAdd,
+                }}
+              />
+            )}
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {filteredRooms.map((room) => (
+            <Card key={room.id} className="hover:shadow-md transition-shadow">
+              <CardHeader className="flex flex-row items-start justify-between pb-2">
+                <div className="space-y-1">
+                  <CardTitle className="text-lg">{room.name}</CardTitle>
+                  <Badge variant={getTypeVariant(room.type)}>
                     {roomTypesArabic[room.type]}
-                  </span>
+                  </Badge>
                 </div>
-                <button
-                  onClick={() => handleDelete(room.id)}
-                  className="text-red-600 hover:text-red-800 text-sm"
-                >
-                  حذف
-                </button>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-
-      {/* Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4">إضافة قاعة جديدة</h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  اسم/رقم القاعة
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="مثال: قاعة 101"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  السعة
-                </label>
-                <input
-                  type="number"
-                  required
-                  min={1}
-                  value={formData.capacity}
-                  onChange={(e) => setFormData({ ...formData, capacity: parseInt(e.target.value) })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  نوع القاعة
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {roomTypes.map((type) => (
-                    <button
-                      key={type}
-                      type="button"
-                      onClick={() => setFormData({ ...formData, type })}
-                      className={`px-4 py-2 rounded-lg text-sm ${
-                        formData.type === type
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => handleEdit(room)}>
+                      <Pencil className="ml-2 h-4 w-4" />
+                      تعديل
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => handleDelete(room)}
+                      className="text-destructive focus:text-destructive"
                     >
-                      {roomTypesArabic[type]}
-                    </button>
-                  ))}
+                      <Trash2 className="ml-2 h-4 w-4" />
+                      حذف
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Users className="h-4 w-4" />
+                  <span>السعة: {room.capacity} طالب</span>
                 </div>
-              </div>
-              <div className="flex gap-3 pt-4">
-                <button
-                  type="submit"
-                  className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700"
-                >
-                  إضافة
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="flex-1 bg-gray-100 text-gray-700 py-2 rounded-lg hover:bg-gray-200"
-                >
-                  إلغاء
-                </button>
-              </div>
-            </form>
-          </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       )}
+
+      {/* Form Dialog */}
+      <RoomFormDialog
+        open={isFormOpen}
+        onOpenChange={setIsFormOpen}
+        onSubmit={handleFormSubmit}
+        room={selectedRoom}
+        isLoading={isSubmitting}
+      />
+
+      {/* Delete Confirmation */}
+      <ConfirmDialog
+        open={isDeleteOpen}
+        onOpenChange={setIsDeleteOpen}
+        title="حذف القاعة"
+        description={`هل أنت متأكد من حذف القاعة "${selectedRoom?.name}"؟`}
+        confirmLabel="حذف"
+        onConfirm={handleConfirmDelete}
+        variant="destructive"
+        loading={deleteRoom.isPending}
+      />
     </div>
   );
 }

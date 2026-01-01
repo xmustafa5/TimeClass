@@ -1,161 +1,284 @@
 'use client';
 
-import { useState } from 'react';
-
-interface Section {
-  id: string;
-  name: string;
-  gradeId: string;
-  gradeName: string;
-}
-
-interface Grade {
-  id: string;
-  name: string;
-}
+import { useState, useMemo } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { Plus, Layers, Search, Pencil, Trash2, MoreHorizontal } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { SectionFormDialog } from '@/components/sections/SectionFormDialog';
+import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
+import { EmptyState } from '@/components/shared/EmptyState';
+import { TableSkeleton } from '@/components/shared/PageSkeleton';
+import {
+  useSections,
+  useCreateSection,
+  useUpdateSection,
+  useDeleteSection,
+} from '@/hooks/use-sections';
+import { useGrades } from '@/hooks/use-grades';
+import type { Section } from '@/types';
+import type { SectionFormData } from '@/lib/validations';
 
 export default function SectionsPage() {
-  const [sections, setSections] = useState<Section[]>([]);
-  const [grades] = useState<Grade[]>([
-    { id: '1', name: 'الصف الأول' },
-    { id: '2', name: 'الصف الثاني' },
-    { id: '3', name: 'الصف الثالث' },
-  ]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState({ name: '', gradeId: '' });
+  const searchParams = useSearchParams();
+  const initialGradeId = searchParams.get('gradeId') || '';
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const grade = grades.find(g => g.id === formData.gradeId);
-    const newSection: Section = {
-      id: crypto.randomUUID(),
-      name: formData.name,
-      gradeId: formData.gradeId,
-      gradeName: grade?.name || '',
-    };
-    setSections([...sections, newSection]);
-    setFormData({ name: '', gradeId: '' });
-    setIsModalOpen(false);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [selectedSection, setSelectedSection] = useState<Section | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterGradeId, setFilterGradeId] = useState(initialGradeId);
+
+  // Data fetching
+  const { data: sections = [], isLoading: sectionsLoading } = useSections();
+  const { data: grades = [] } = useGrades();
+
+  // Mutations
+  const createSection = useCreateSection();
+  const updateSection = useUpdateSection();
+  const deleteSection = useDeleteSection();
+
+  // Get grade name helper
+  const getGradeName = (gradeId: string) => {
+    const grade = grades.find((g) => g.id === gradeId);
+    return grade?.name || 'غير محدد';
   };
 
-  const handleDelete = (id: string) => {
-    setSections(sections.filter(s => s.id !== id));
-  };
+  // Filter sections
+  const filteredSections = useMemo(() => {
+    let result = sections;
 
-  // Group sections by grade
-  const sectionsByGrade = sections.reduce((acc, section) => {
-    if (!acc[section.gradeId]) {
-      acc[section.gradeId] = {
-        gradeName: section.gradeName,
-        sections: [],
-      };
+    if (filterGradeId) {
+      result = result.filter((s) => s.gradeId === filterGradeId);
     }
-    acc[section.gradeId].sections.push(section);
-    return acc;
-  }, {} as Record<string, { gradeName: string; sections: Section[] }>);
+
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(
+        (s) =>
+          s.name.toLowerCase().includes(query) ||
+          getGradeName(s.gradeId).toLowerCase().includes(query)
+      );
+    }
+
+    return result;
+  }, [sections, filterGradeId, searchQuery, grades]);
+
+  // Handlers
+  const handleAdd = () => {
+    setSelectedSection(null);
+    setIsFormOpen(true);
+  };
+
+  const handleEdit = (section: Section) => {
+    setSelectedSection(section);
+    setIsFormOpen(true);
+  };
+
+  const handleDelete = (section: Section) => {
+    setSelectedSection(section);
+    setIsDeleteOpen(true);
+  };
+
+  const handleFormSubmit = (data: SectionFormData) => {
+    if (selectedSection) {
+      updateSection.mutate(
+        { id: selectedSection.id, data },
+        { onSuccess: () => setIsFormOpen(false) }
+      );
+    } else {
+      createSection.mutate(data, {
+        onSuccess: () => setIsFormOpen(false),
+      });
+    }
+  };
+
+  const handleConfirmDelete = () => {
+    if (selectedSection) {
+      deleteSection.mutate(selectedSection.id, {
+        onSuccess: () => {
+          setIsDeleteOpen(false);
+          setSelectedSection(null);
+        },
+      });
+    }
+  };
+
+  const isSubmitting = createSection.isPending || updateSection.isPending;
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">الشُعَب</h1>
-          <p className="text-gray-600 mt-1">إدارة شُعَب الصفوف</p>
+          <h1 className="text-3xl font-bold">الشعب</h1>
+          <p className="text-muted-foreground mt-1">
+            إدارة الشعب الدراسية وربطها بالصفوف
+          </p>
         </div>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          + إضافة شعبة
-        </button>
+        <Button onClick={handleAdd} className="gap-2 self-start">
+          <Plus className="h-4 w-4" />
+          إضافة شعبة
+        </Button>
       </div>
 
-      {/* Sections by Grade */}
-      {Object.keys(sectionsByGrade).length === 0 ? (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center text-gray-500">
-          <p className="text-lg">لا توجد شُعَب حالياً</p>
-          <p className="text-sm mt-2">اضغط على "إضافة شعبة" لإضافة شعبة جديدة</p>
+      {/* Stats */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle className="text-sm font-medium">إجمالي الشعب</CardTitle>
+          <Layers className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">{sections.length}</div>
+        </CardContent>
+      </Card>
+
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="البحث في الشعب..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pr-10"
+          />
         </div>
+        <Select value={filterGradeId} onValueChange={setFilterGradeId}>
+          <SelectTrigger className="w-[200px]">
+            <SelectValue placeholder="جميع الصفوف" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">جميع الصفوف</SelectItem>
+            {grades.map((grade) => (
+              <SelectItem key={grade.id} value={grade.id}>
+                {grade.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Table */}
+      {sectionsLoading ? (
+        <Card>
+          <CardContent className="p-6">
+            <TableSkeleton rows={5} />
+          </CardContent>
+        </Card>
+      ) : filteredSections.length === 0 ? (
+        <Card>
+          <CardContent className="p-6">
+            {searchQuery || filterGradeId ? (
+              <EmptyState
+                icon={Search}
+                title="لا توجد نتائج"
+                description="لم يتم العثور على شعب تطابق بحثك أو الفلتر المحدد"
+              />
+            ) : (
+              <EmptyState
+                icon={Layers}
+                title="لا توجد شعب"
+                description="لم يتم إضافة أي شعب بعد. اضغط على زر الإضافة للبدء."
+                action={{
+                  label: 'إضافة شعبة',
+                  onClick: handleAdd,
+                }}
+              />
+            )}
+          </CardContent>
+        </Card>
       ) : (
-        Object.entries(sectionsByGrade).map(([gradeId, data]) => (
-          <div key={gradeId} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">{data.gradeName}</h2>
-            <div className="flex flex-wrap gap-3">
-              {data.sections.map((section) => (
-                <div
-                  key={section.id}
-                  className="flex items-center gap-2 bg-gray-100 px-4 py-2 rounded-lg"
-                >
-                  <span className="text-gray-700">{section.name}</span>
-                  <button
-                    onClick={() => handleDelete(section.id)}
-                    className="text-red-600 hover:text-red-800"
-                  >
-                    ×
-                  </button>
-                </div>
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="text-right">اسم الشعبة</TableHead>
+                <TableHead className="text-right">الصف</TableHead>
+                <TableHead className="text-right w-[70px]">إجراءات</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredSections.map((section) => (
+                <TableRow key={section.id}>
+                  <TableCell className="font-medium">{section.name}</TableCell>
+                  <TableCell>
+                    <Badge variant="secondary">{getGradeName(section.gradeId)}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleEdit(section)}>
+                          <Pencil className="ml-2 h-4 w-4" />
+                          تعديل
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => handleDelete(section)}
+                          className="text-destructive focus:text-destructive"
+                        >
+                          <Trash2 className="ml-2 h-4 w-4" />
+                          حذف
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
               ))}
-            </div>
-          </div>
-        ))
+            </TableBody>
+          </Table>
+        </div>
       )}
 
-      {/* Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4">إضافة شعبة جديدة</h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  الصف
-                </label>
-                <select
-                  required
-                  value={formData.gradeId}
-                  onChange={(e) => setFormData({ ...formData, gradeId: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="">اختر الصف</option>
-                  {grades.map((grade) => (
-                    <option key={grade.id} value={grade.id}>
-                      {grade.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  اسم الشعبة
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="مثال: أ، ب، ج"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-              <div className="flex gap-3 pt-4">
-                <button
-                  type="submit"
-                  className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700"
-                >
-                  إضافة
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="flex-1 bg-gray-100 text-gray-700 py-2 rounded-lg hover:bg-gray-200"
-                >
-                  إلغاء
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* Form Dialog */}
+      <SectionFormDialog
+        open={isFormOpen}
+        onOpenChange={setIsFormOpen}
+        onSubmit={handleFormSubmit}
+        section={selectedSection}
+        grades={grades}
+        defaultGradeId={filterGradeId}
+        isLoading={isSubmitting}
+      />
+
+      {/* Delete Confirmation */}
+      <ConfirmDialog
+        open={isDeleteOpen}
+        onOpenChange={setIsDeleteOpen}
+        title="حذف الشعبة"
+        description={`هل أنت متأكد من حذف الشعبة "${selectedSection?.name}"؟`}
+        confirmLabel="حذف"
+        onConfirm={handleConfirmDelete}
+        variant="destructive"
+        loading={deleteSection.isPending}
+      />
     </div>
   );
 }
