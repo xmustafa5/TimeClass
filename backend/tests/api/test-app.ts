@@ -7,6 +7,7 @@ import { sectionsRoutes } from '../../src/routes/sections.js';
 import { roomsRoutes } from '../../src/routes/rooms.js';
 import { periodsRoutes } from '../../src/routes/periods.js';
 import { scheduleRoutes } from '../../src/routes/schedule.js';
+import { statsRoutes } from '../../src/routes/stats.js';
 
 export async function buildTestApp() {
   const app = Fastify({
@@ -22,6 +23,7 @@ export async function buildTestApp() {
   await app.register(roomsRoutes, { prefix: '/api/rooms' });
   await app.register(periodsRoutes, { prefix: '/api/periods' });
   await app.register(scheduleRoutes, { prefix: '/api/schedule' });
+  await app.register(statsRoutes, { prefix: '/api/stats' });
 
   return app;
 }

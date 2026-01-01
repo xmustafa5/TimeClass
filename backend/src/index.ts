@@ -37,6 +37,8 @@ await server.register(swagger, {
       { name: 'rooms', description: 'القاعات - Rooms management' },
       { name: 'periods', description: 'الحصص - Periods management' },
       { name: 'schedule', description: 'الجدول الدراسي - Schedule management' },
+      { name: 'export', description: 'التصدير - Data export' },
+      { name: 'statistics', description: 'الإحصائيات - Statistics and analytics' },
     ],
   },
 });
@@ -64,6 +66,7 @@ await server.register(sectionsRoutes, { prefix: '/api/sections' });
 await server.register(roomsRoutes, { prefix: '/api/rooms' });
 await server.register(periodsRoutes, { prefix: '/api/periods' });
 await server.register(scheduleRoutes, { prefix: '/api/schedule' });
+await server.register(statsRoutes, { prefix: '/api/stats' });
 
 // Health check route
 server.get('/api/health', async () => {

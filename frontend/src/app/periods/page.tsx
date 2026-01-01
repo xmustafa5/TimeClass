@@ -1,163 +1,283 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import { Plus, Clock, Pencil, Trash2, MoreVertical } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { PeriodFormDialog } from '@/components/periods/PeriodFormDialog';
+import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
+import { EmptyState } from '@/components/shared/EmptyState';
+import { CardSkeleton } from '@/components/shared/PageSkeleton';
+import {
+  usePeriods,
+  useCreatePeriod,
+  useUpdatePeriod,
+  useDeletePeriod,
+} from '@/hooks/use-periods';
+import type { Period } from '@/types';
+import type { PeriodFormData } from '@/lib/validations';
 
-interface Period {
-  id: string;
-  number: number;
-  startTime: string;
-  endTime: string;
-}
+const periodNames = [
+  'الأولى',
+  'الثانية',
+  'الثالثة',
+  'الرابعة',
+  'الخامسة',
+  'السادسة',
+  'السابعة',
+  'الثامنة',
+  'التاسعة',
+  'العاشرة',
+];
+
+const getPeriodName = (number: number) => {
+  return periodNames[number - 1] || `الحصة ${number}`;
+};
+
+const formatTime = (time: string) => {
+  const [hours, minutes] = time.split(':');
+  const hour = parseInt(hours);
+  const period = hour >= 12 ? 'م' : 'ص';
+  const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
+  return `${displayHour}:${minutes} ${period}`;
+};
+
+const calculateDuration = (startTime: string, endTime: string) => {
+  const [startH, startM] = startTime.split(':').map(Number);
+  const [endH, endM] = endTime.split(':').map(Number);
+  const startMinutes = startH * 60 + startM;
+  const endMinutes = endH * 60 + endM;
+  return endMinutes - startMinutes;
+};
 
 export default function PeriodsPage() {
-  const [periods, setPeriods] = useState<Period[]>([]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState({
-    number: 1,
-    startTime: '08:00',
-    endTime: '08:45',
-  });
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [selectedPeriod, setSelectedPeriod] = useState<Period | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const newPeriod: Period = {
-      id: crypto.randomUUID(),
-      ...formData,
-    };
-    setPeriods([...periods, newPeriod].sort((a, b) => a.number - b.number));
-    setFormData({ number: periods.length + 2, startTime: '08:00', endTime: '08:45' });
-    setIsModalOpen(false);
+  // Data fetching
+  const { data: periods = [], isLoading } = usePeriods();
+
+  // Mutations
+  const createPeriod = useCreatePeriod();
+  const updatePeriod = useUpdatePeriod();
+  const deletePeriod = useDeletePeriod();
+
+  // Sort periods by number
+  const sortedPeriods = useMemo(() => {
+    return [...periods].sort((a, b) => a.number - b.number);
+  }, [periods]);
+
+  // Calculate total hours
+  const totalMinutes = useMemo(() => {
+    return periods.reduce((acc, p) => acc + calculateDuration(p.startTime, p.endTime), 0);
+  }, [periods]);
+
+  // Handlers
+  const handleAdd = () => {
+    setSelectedPeriod(null);
+    setIsFormOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    setPeriods(periods.filter(p => p.id !== id));
+  const handleEdit = (period: Period) => {
+    setSelectedPeriod(period);
+    setIsFormOpen(true);
   };
 
-  const getPeriodName = (number: number) => {
-    const names = ['الأولى', 'الثانية', 'الثالثة', 'الرابعة', 'الخامسة', 'السادسة', 'السابعة'];
-    return names[number - 1] || `الحصة ${number}`;
+  const handleDelete = (period: Period) => {
+    setSelectedPeriod(period);
+    setIsDeleteOpen(true);
   };
+
+  const handleFormSubmit = (data: PeriodFormData) => {
+    if (selectedPeriod) {
+      updatePeriod.mutate(
+        { id: selectedPeriod.id, data },
+        { onSuccess: () => setIsFormOpen(false) }
+      );
+    } else {
+      createPeriod.mutate(data, {
+        onSuccess: () => setIsFormOpen(false),
+      });
+    }
+  };
+
+  const handleConfirmDelete = () => {
+    if (selectedPeriod) {
+      deletePeriod.mutate(selectedPeriod.id, {
+        onSuccess: () => {
+          setIsDeleteOpen(false);
+          setSelectedPeriod(null);
+        },
+      });
+    }
+  };
+
+  const isSubmitting = createPeriod.isPending || updatePeriod.isPending;
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">الحصص</h1>
-          <p className="text-gray-600 mt-1">إدارة أوقات الحصص الدراسية</p>
+          <h1 className="text-3xl font-bold">الحصص</h1>
+          <p className="text-muted-foreground mt-1">
+            إدارة أوقات الحصص الدراسية
+          </p>
         </div>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          + إضافة حصة
-        </button>
+        <Button onClick={handleAdd} className="gap-2 self-start">
+          <Plus className="h-4 w-4" />
+          إضافة حصة
+        </Button>
+      </div>
+
+      {/* Stats */}
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">إجمالي الحصص</CardTitle>
+            <Clock className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{periods.length}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">إجمالي الساعات</CardTitle>
+            <Clock className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {Math.floor(totalMinutes / 60)} ساعة {totalMinutes % 60} دقيقة
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">متوسط مدة الحصة</CardTitle>
+            <Clock className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {periods.length > 0 ? Math.round(totalMinutes / periods.length) : 0} دقيقة
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Periods Timeline */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        {periods.length === 0 ? (
-          <div className="p-12 text-center text-gray-500">
-            <p className="text-lg">لا توجد حصص حالياً</p>
-            <p className="text-sm mt-2">اضغط على "إضافة حصة" لإضافة حصة جديدة</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {periods.map((period) => (
-              <div
-                key={period.id}
-                className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-lg">
-                    {period.number}
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900">
-                      الحصة {getPeriodName(period.number)}
-                    </h3>
-                    <p className="text-sm text-gray-500">
-                      {period.startTime} - {period.endTime}
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => handleDelete(period.id)}
-                  className="text-red-600 hover:text-red-800"
-                >
-                  حذف
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4">إضافة حصة جديدة</h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  رقم الحصة
-                </label>
-                <input
-                  type="number"
-                  required
-                  min={1}
-                  max={10}
-                  value={formData.number}
-                  onChange={(e) => setFormData({ ...formData, number: parseInt(e.target.value) })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    وقت البداية
-                  </label>
-                  <input
-                    type="time"
-                    required
-                    value={formData.startTime}
-                    onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    وقت النهاية
-                  </label>
-                  <input
-                    type="time"
-                    required
-                    value={formData.endTime}
-                    onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-              </div>
-              <div className="flex gap-3 pt-4">
-                <button
-                  type="submit"
-                  className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700"
-                >
-                  إضافة
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="flex-1 bg-gray-100 text-gray-700 py-2 rounded-lg hover:bg-gray-200"
-                >
-                  إلغاء
-                </button>
-              </div>
-            </form>
-          </div>
+      {isLoading ? (
+        <div className="space-y-4">
+          {[...Array(6)].map((_, i) => (
+            <CardSkeleton key={i} />
+          ))}
         </div>
+      ) : sortedPeriods.length === 0 ? (
+        <Card>
+          <CardContent className="p-6">
+            <EmptyState
+              icon={Clock}
+              title="لا توجد حصص"
+              description="لم يتم إضافة أي حصص بعد. اضغط على زر الإضافة للبدء."
+              action={{
+                label: 'إضافة حصة',
+                onClick: handleAdd,
+              }}
+            />
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardContent className="p-6">
+            <div className="space-y-4">
+              {sortedPeriods.map((period, index) => {
+                const duration = calculateDuration(period.startTime, period.endTime);
+                return (
+                  <div key={period.id} className="relative">
+                    {/* Timeline connector */}
+                    {index < sortedPeriods.length - 1 && (
+                      <div className="absolute right-6 top-14 bottom-0 w-0.5 bg-border" />
+                    )}
+
+                    <div className="flex items-center gap-4 p-4 bg-muted/50 rounded-lg hover:bg-muted transition-colors">
+                      {/* Period number circle */}
+                      <div className="w-12 h-12 bg-primary text-primary-foreground rounded-full flex items-center justify-center font-bold text-lg shrink-0 z-10">
+                        {period.number}
+                      </div>
+
+                      {/* Period info */}
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-lg">
+                          الحصة {getPeriodName(period.number)}
+                        </h3>
+                        <div className="flex items-center gap-4 text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <Clock className="h-4 w-4" />
+                            {formatTime(period.startTime)} - {formatTime(period.endTime)}
+                          </span>
+                          <span className="text-sm">
+                            ({duration} دقيقة)
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Actions */}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleEdit(period)}>
+                            <Pencil className="ml-2 h-4 w-4" />
+                            تعديل
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => handleDelete(period)}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            <Trash2 className="ml-2 h-4 w-4" />
+                            حذف
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
       )}
+
+      {/* Form Dialog */}
+      <PeriodFormDialog
+        open={isFormOpen}
+        onOpenChange={setIsFormOpen}
+        onSubmit={handleFormSubmit}
+        period={selectedPeriod}
+        isLoading={isSubmitting}
+      />
+
+      {/* Delete Confirmation */}
+      <ConfirmDialog
+        open={isDeleteOpen}
+        onOpenChange={setIsDeleteOpen}
+        title="حذف الحصة"
+        description={`هل أنت متأكد من حذف الحصة "${selectedPeriod ? getPeriodName(selectedPeriod.number) : ''}"؟`}
+        confirmLabel="حذف"
+        onConfirm={handleConfirmDelete}
+        variant="destructive"
+        loading={deletePeriod.isPending}
+      />
     </div>
   );
 }
