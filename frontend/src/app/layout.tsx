@@ -5,6 +5,8 @@ import { Providers } from "./providers";
 import Sidebar from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { Toaster } from "@/components/ui/sonner";
+import { SkipLink } from "@/components/shared/SkipLink";
+import { KeyboardShortcutsDialog } from "@/components/shared/KeyboardShortcutsDialog";
 
 const cairo = Cairo({
   variable: "--font-cairo",
@@ -26,16 +28,18 @@ export default function RootLayout({
     <html lang="ar" dir="rtl" suppressHydrationWarning>
       <body className={`${cairo.variable} font-sans antialiased`}>
         <Providers>
+          <SkipLink />
           <div className="flex min-h-screen">
             <Sidebar />
             <div className="flex-1 flex flex-col">
               <Header />
-              <main className="flex-1 p-6 bg-muted/30">
+              <main id="main-content" className="flex-1 p-6 bg-muted/30" tabIndex={-1}>
                 {children}
               </main>
             </div>
           </div>
           <Toaster position="top-center" dir="rtl" />
+          <KeyboardShortcutsDialog />
         </Providers>
       </body>
     </html>

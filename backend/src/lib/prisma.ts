@@ -32,7 +32,7 @@ export async function disconnectPrisma() {
 
 // Re-export types for convenience
 export type { PrismaClient };
-export {
+export type {
   Teacher,
   Grade,
   Section,
