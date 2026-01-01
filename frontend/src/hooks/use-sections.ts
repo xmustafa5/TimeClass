@@ -19,7 +19,9 @@ export function useSections() {
     queryKey: sectionKeys.lists(),
     queryFn: async () => {
       const response = await sectionsApi.getAll();
-      return response.data ?? [];
+      // Backend returns { sections: [...], total, page, limit }
+      const data = response.data as { sections: Section[]; total: number; page: number; limit: number } | undefined;
+      return data?.sections ?? [];
     },
   });
 }

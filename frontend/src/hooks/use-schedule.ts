@@ -28,7 +28,9 @@ export function useSchedule() {
     queryKey: scheduleKeys.lists(),
     queryFn: async () => {
       const response = await scheduleApi.getAll();
-      return response.data ?? [];
+      // Backend returns { entries: [...], total, page, limit }
+      const data = response.data as { entries: ScheduleEntry[]; total: number; page: number; limit: number } | undefined;
+      return data?.entries ?? [];
     },
   });
 }

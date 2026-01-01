@@ -1,7 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { teachersApi, CreateTeacherInput, UpdateTeacherInput } from '@/lib/api';
-import type { Teacher } from '@/types';
+import type { Teacher, WeekDay } from '@/types';
 import { toast } from 'sonner';
+
+// Helper to parse workDays from JSON string (backend stores as string)
+function parseTeacher(teacher: Teacher): Teacher {
+  return {
+    ...teacher,
+    workDays: typeof teacher.workDays === 'string'
+      ? JSON.parse(teacher.workDays) as WeekDay[]
+      : teacher.workDays,
+  };
+}
 
 // Query keys factory
 export const teacherKeys = {
@@ -18,7 +28,10 @@ export function useTeachers() {
     queryKey: teacherKeys.lists(),
     queryFn: async () => {
       const response = await teachersApi.getAll();
-      return response.data ?? [];
+      // Backend returns { teachers: [...], total, page, limit }
+      const data = response.data as { teachers: Teacher[]; total: number; page: number; limit: number } | undefined;
+      // Parse workDays from JSON string
+      return (data?.teachers ?? []).map(parseTeacher);
     },
   });
 }
@@ -29,7 +42,7 @@ export function useTeacher(id: string) {
     queryKey: teacherKeys.detail(id),
     queryFn: async () => {
       const response = await teachersApi.getById(id);
-      return response.data;
+      return response.data ? parseTeacher(response.data) : undefined;
     },
     enabled: !!id,
   });

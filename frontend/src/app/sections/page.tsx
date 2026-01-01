@@ -167,12 +167,12 @@ export default function SectionsPage() {
             className="pr-10"
           />
         </div>
-        <Select value={filterGradeId} onValueChange={setFilterGradeId}>
+        <Select value={filterGradeId || "all"} onValueChange={(v) => setFilterGradeId(v === "all" ? "" : v)}>
           <SelectTrigger className="w-[200px]">
             <SelectValue placeholder="جميع الصفوف" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">جميع الصفوف</SelectItem>
+            <SelectItem value="all">جميع الصفوف</SelectItem>
             {grades.map((grade) => (
               <SelectItem key={grade.id} value={grade.id}>
                 {grade.name}

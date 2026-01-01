@@ -19,7 +19,9 @@ export function useRooms() {
     queryKey: roomKeys.lists(),
     queryFn: async () => {
       const response = await roomsApi.getAll();
-      return response.data ?? [];
+      // Backend returns { rooms: [...], total, page, limit }
+      const data = response.data as { rooms: Room[]; total: number; page: number; limit: number } | undefined;
+      return data?.rooms ?? [];
     },
   });
 }

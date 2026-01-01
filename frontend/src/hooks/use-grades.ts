@@ -18,7 +18,9 @@ export function useGrades() {
     queryKey: gradeKeys.lists(),
     queryFn: async () => {
       const response = await gradesApi.getAll();
-      return response.data ?? [];
+      // Backend returns { grades: [...], total, page, limit }
+      const data = response.data as { grades: Grade[]; total: number; page: number; limit: number } | undefined;
+      return data?.grades ?? [];
     },
   });
 }

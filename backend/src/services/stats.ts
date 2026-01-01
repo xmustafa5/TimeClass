@@ -16,31 +16,15 @@ export interface TeacherStats {
 }
 
 /**
- * Room statistics
- */
-export interface RoomStats {
-  roomId: string;
-  roomName: string;
-  roomType: string;
-  capacity: number;
-  scheduledPeriods: number;
-  totalAvailablePeriods: number;
-  utilizationPercentage: number;
-  periodsByDay: Record<string, number>;
-}
-
-/**
  * Overview statistics
  */
 export interface OverviewStats {
   totalTeachers: number;
   totalGrades: number;
   totalSections: number;
-  totalRooms: number;
   totalPeriods: number;
   totalScheduleEntries: number;
   averageTeacherUtilization: number;
-  averageRoomUtilization: number;
   entriesByDay: Record<string, number>;
   busyPeriods: { periodNumber: number; count: number }[];
 }
@@ -52,7 +36,6 @@ export interface UnusedSlot {
   day: string;
   periodNumber: number;
   periodTime: string;
-  availableRooms: { id: string; name: string; type: string }[];
   availableTeachers: { id: string; name: string; subject: string }[];
 }
 
@@ -99,46 +82,6 @@ export class StatsService {
   }
 
   /**
-   * Get statistics for all rooms
-   */
-  async getRoomStats(): Promise<RoomStats[]> {
-    const rooms = await prisma.room.findMany({
-      include: {
-        scheduleEntries: {
-          select: { day: true },
-        },
-      },
-    });
-
-    const periodsCount = await prisma.period.count();
-    const totalAvailablePeriods = periodsCount * weekDays.length;
-
-    return rooms.map((room) => {
-      const periodsByDay: Record<string, number> = {};
-      for (const day of weekDays) {
-        periodsByDay[day] = room.scheduleEntries.filter((e) => e.day === day).length;
-      }
-
-      const scheduledPeriods = room.scheduleEntries.length;
-      const utilizationPercentage =
-        totalAvailablePeriods > 0
-          ? Math.round((scheduledPeriods / totalAvailablePeriods) * 100)
-          : 0;
-
-      return {
-        roomId: room.id,
-        roomName: room.name,
-        roomType: room.type,
-        capacity: room.capacity,
-        scheduledPeriods,
-        totalAvailablePeriods,
-        utilizationPercentage,
-        periodsByDay,
-      };
-    });
-  }
-
-  /**
    * Get overview statistics
    */
   async getOverviewStats(): Promise<OverviewStats> {
@@ -146,7 +89,6 @@ export class StatsService {
       totalTeachers,
       totalGrades,
       totalSections,
-      totalRooms,
       totalPeriods,
       totalScheduleEntries,
       scheduleEntries,
@@ -155,7 +97,6 @@ export class StatsService {
       prisma.teacher.count(),
       prisma.grade.count(),
       prisma.section.count(),
-      prisma.room.count(),
       prisma.period.count(),
       prisma.scheduleEntry.count(),
       prisma.scheduleEntry.findMany({
@@ -195,40 +136,27 @@ export class StatsService {
           )
         : 0;
 
-    // Calculate average room utilization
-    const roomStats = await this.getRoomStats();
-    const averageRoomUtilization =
-      roomStats.length > 0
-        ? Math.round(
-            roomStats.reduce((sum, r) => sum + r.utilizationPercentage, 0) /
-              roomStats.length
-          )
-        : 0;
-
     return {
       totalTeachers,
       totalGrades,
       totalSections,
-      totalRooms,
       totalPeriods,
       totalScheduleEntries,
       averageTeacherUtilization,
-      averageRoomUtilization,
       entriesByDay,
       busyPeriods,
     };
   }
 
   /**
-   * Find unused time slots (available rooms and teachers)
+   * Find unused time slots (available teachers)
    */
   async getUnusedSlots(): Promise<UnusedSlot[]> {
-    const [periods, rooms, teachers, scheduleEntries] = await Promise.all([
+    const [periods, teachers, scheduleEntries] = await Promise.all([
       prisma.period.findMany({ orderBy: { number: 'asc' } }),
-      prisma.room.findMany(),
       prisma.teacher.findMany(),
       prisma.scheduleEntry.findMany({
-        select: { day: true, periodId: true, roomId: true, teacherId: true },
+        select: { day: true, periodId: true, teacherId: true },
       }),
     ]);
 
@@ -236,24 +164,12 @@ export class StatsService {
 
     for (const day of weekDays) {
       for (const period of periods) {
-        // Find which rooms are busy at this slot
-        const busyRoomIds = new Set(
-          scheduleEntries
-            .filter((e) => e.day === day && e.periodId === period.id)
-            .map((e) => e.roomId)
-        );
-
         // Find which teachers are busy at this slot
         const busyTeacherIds = new Set(
           scheduleEntries
             .filter((e) => e.day === day && e.periodId === period.id)
             .map((e) => e.teacherId)
         );
-
-        // Get available rooms and teachers
-        const availableRooms = rooms
-          .filter((r) => !busyRoomIds.has(r.id))
-          .map((r) => ({ id: r.id, name: r.name, type: r.type }));
 
         const availableTeachers = teachers
           .filter((t) => {
@@ -264,13 +180,12 @@ export class StatsService {
           })
           .map((t) => ({ id: t.id, name: t.fullName, subject: t.subject }));
 
-        // Only include slots that have some availability
-        if (availableRooms.length > 0 && availableTeachers.length > 0) {
+        // Only include slots that have available teachers
+        if (availableTeachers.length > 0) {
           unusedSlots.push({
             day,
             periodNumber: period.number,
             periodTime: `${period.startTime} - ${period.endTime}`,
-            availableRooms,
             availableTeachers,
           });
         }

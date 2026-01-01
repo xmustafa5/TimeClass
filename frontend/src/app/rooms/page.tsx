@@ -181,12 +181,12 @@ export default function RoomsPage() {
             className="pr-10"
           />
         </div>
-        <Select value={filterType} onValueChange={(v) => setFilterType(v as RoomType | '')}>
+        <Select value={filterType || "all"} onValueChange={(v) => setFilterType(v === "all" ? "" : v as RoomType)}>
           <SelectTrigger className="w-48">
             <SelectValue placeholder="جميع الأنواع" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">جميع الأنواع</SelectItem>
+            <SelectItem value="all">جميع الأنواع</SelectItem>
             {roomTypes.map((type) => (
               <SelectItem key={type} value={type}>
                 {roomTypesArabic[type]}

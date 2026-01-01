@@ -21,7 +21,6 @@ interface ScheduleEntryWithRelations extends ScheduleEntry {
   grade: { id: string; name: string };
   section: { id: string; name: string };
   period: { id: string; number: number; startTime: string; endTime: string };
-  room: { id: string; name: string; type: string };
 }
 
 interface ScheduleListResponse {
@@ -37,7 +36,6 @@ const scheduleInclude = {
   grade: { select: { id: true, name: true } },
   section: { select: { id: true, name: true } },
   period: { select: { id: true, number: true, startTime: true, endTime: true } },
-  room: { select: { id: true, name: true, type: true } },
 };
 
 export const scheduleRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
@@ -136,12 +134,11 @@ export const scheduleRoutes: FastifyPluginAsync = async (fastify: FastifyInstanc
         description: 'Check if a proposed schedule entry would cause any conflicts',
         body: {
           type: 'object',
-          required: ['teacherId', 'sectionId', 'periodId', 'roomId', 'day'],
+          required: ['teacherId', 'sectionId', 'periodId', 'day'],
           properties: {
             teacherId: { type: 'string', format: 'uuid' },
             sectionId: { type: 'string', format: 'uuid' },
             periodId: { type: 'string', format: 'uuid' },
-            roomId: { type: 'string', format: 'uuid' },
             day: { type: 'string', enum: [...weekDays] },
             excludeEntryId: { type: 'string', format: 'uuid' },
           },
@@ -177,13 +174,12 @@ export const scheduleRoutes: FastifyPluginAsync = async (fastify: FastifyInstanc
         description: 'Create a new schedule entry with conflict checking',
         body: {
           type: 'object',
-          required: ['teacherId', 'gradeId', 'sectionId', 'periodId', 'roomId', 'day', 'subject'],
+          required: ['teacherId', 'gradeId', 'sectionId', 'periodId', 'day', 'subject'],
           properties: {
             teacherId: { type: 'string', format: 'uuid' },
             gradeId: { type: 'string', format: 'uuid' },
             sectionId: { type: 'string', format: 'uuid' },
             periodId: { type: 'string', format: 'uuid' },
-            roomId: { type: 'string', format: 'uuid' },
             day: { type: 'string', enum: [...weekDays] },
             subject: { type: 'string', minLength: 1 },
           },
@@ -207,7 +203,6 @@ export const scheduleRoutes: FastifyPluginAsync = async (fastify: FastifyInstanc
           gradeId: data.gradeId,
           sectionId: data.sectionId,
           periodId: data.periodId,
-          roomId: data.roomId,
         });
 
         if (!refValidation.valid) {
@@ -220,7 +215,6 @@ export const scheduleRoutes: FastifyPluginAsync = async (fastify: FastifyInstanc
           teacherId: data.teacherId,
           sectionId: data.sectionId,
           periodId: data.periodId,
-          roomId: data.roomId,
           day: data.day,
         });
 
@@ -302,7 +296,6 @@ export const scheduleRoutes: FastifyPluginAsync = async (fastify: FastifyInstanc
           teacherId: data.teacherId || existing.teacherId,
           sectionId: data.sectionId || existing.sectionId,
           periodId: data.periodId || existing.periodId,
-          roomId: data.roomId || existing.roomId,
           day: mergedDay,
           excludeEntryId: id,
         });
@@ -392,13 +385,12 @@ export const scheduleRoutes: FastifyPluginAsync = async (fastify: FastifyInstanc
               type: 'array',
               items: {
                 type: 'object',
-                required: ['teacherId', 'gradeId', 'sectionId', 'periodId', 'roomId', 'day', 'subject'],
+                required: ['teacherId', 'gradeId', 'sectionId', 'periodId', 'day', 'subject'],
                 properties: {
                   teacherId: { type: 'string', format: 'uuid' },
                   gradeId: { type: 'string', format: 'uuid' },
                   sectionId: { type: 'string', format: 'uuid' },
                   periodId: { type: 'string', format: 'uuid' },
-                  roomId: { type: 'string', format: 'uuid' },
                   day: { type: 'string', enum: [...weekDays] },
                   subject: { type: 'string', minLength: 1 },
                 },
@@ -437,7 +429,6 @@ export const scheduleRoutes: FastifyPluginAsync = async (fastify: FastifyInstanc
               teacherId: entry.teacherId,
               sectionId: entry.sectionId,
               periodId: entry.periodId,
-              roomId: entry.roomId,
               day: entry.day,
             });
 
@@ -592,45 +583,6 @@ export const scheduleRoutes: FastifyPluginAsync = async (fastify: FastifyInstanc
     }
   );
 
-  // ============ SCHEDULE BY ROOM ============
-  fastify.get<{ Params: { roomId: string } }>(
-    '/by-room/:roomId',
-    {
-      schema: {
-        tags: ['schedule'],
-        summary: 'Get schedule for a specific room',
-        description: 'Retrieve all schedule entries for a specific room',
-        params: {
-          type: 'object',
-          properties: { roomId: { type: 'string', format: 'uuid' } },
-          required: ['roomId'],
-        },
-      },
-    },
-    async (request, reply): Promise<ApiResponse<ScheduleEntryWithRelations[]>> => {
-      try {
-        const { roomId } = request.params;
-
-        const room = await prisma.room.findUnique({ where: { id: roomId } });
-        if (!room) {
-          reply.status(404);
-          return { success: false, error: 'القاعة غير موجودة' };
-        }
-
-        const entries = await prisma.scheduleEntry.findMany({
-          where: { roomId },
-          include: scheduleInclude,
-          orderBy: [{ day: 'asc' }, { period: { number: 'asc' } }],
-        });
-
-        return { success: true, data: entries as ScheduleEntryWithRelations[] };
-      } catch (error) {
-        reply.status(500);
-        return { success: false, error: 'فشل في جلب جدول القاعة' };
-      }
-    }
-  );
-
   // ============ SCHEDULE BY GRADE ============
   fastify.get<{ Params: { gradeId: string } }>(
     '/by-grade/:gradeId',
@@ -712,7 +664,6 @@ export const scheduleRoutes: FastifyPluginAsync = async (fastify: FastifyInstanc
       teacherId?: string;
       gradeId?: string;
       sectionId?: string;
-      roomId?: string;
     };
   }>(
     '/export/json',
@@ -728,7 +679,6 @@ export const scheduleRoutes: FastifyPluginAsync = async (fastify: FastifyInstanc
             teacherId: { type: 'string', format: 'uuid', description: 'Filter by teacher' },
             gradeId: { type: 'string', format: 'uuid', description: 'Filter by grade' },
             sectionId: { type: 'string', format: 'uuid', description: 'Filter by section' },
-            roomId: { type: 'string', format: 'uuid', description: 'Filter by room' },
           },
         },
       },
@@ -744,7 +694,6 @@ export const scheduleRoutes: FastifyPluginAsync = async (fastify: FastifyInstanc
           teacherId: request.query.teacherId,
           gradeId: request.query.gradeId,
           sectionId: request.query.sectionId,
-          roomId: request.query.roomId,
         };
 
         const result = await exportService.exportAsJson(filters);
@@ -764,7 +713,6 @@ export const scheduleRoutes: FastifyPluginAsync = async (fastify: FastifyInstanc
       teacherId?: string;
       gradeId?: string;
       sectionId?: string;
-      roomId?: string;
     };
   }>(
     '/export/csv',
@@ -780,7 +728,6 @@ export const scheduleRoutes: FastifyPluginAsync = async (fastify: FastifyInstanc
             teacherId: { type: 'string', format: 'uuid', description: 'Filter by teacher' },
             gradeId: { type: 'string', format: 'uuid', description: 'Filter by grade' },
             sectionId: { type: 'string', format: 'uuid', description: 'Filter by section' },
-            roomId: { type: 'string', format: 'uuid', description: 'Filter by room' },
           },
         },
       },
@@ -792,7 +739,6 @@ export const scheduleRoutes: FastifyPluginAsync = async (fastify: FastifyInstanc
           teacherId: request.query.teacherId,
           gradeId: request.query.gradeId,
           sectionId: request.query.sectionId,
-          roomId: request.query.roomId,
         };
 
         const csv = await exportService.exportAsCsv(filters);
@@ -815,7 +761,6 @@ export const scheduleRoutes: FastifyPluginAsync = async (fastify: FastifyInstanc
       teacherId?: string;
       gradeId?: string;
       sectionId?: string;
-      roomId?: string;
     };
   }>(
     '/export/weekly',
@@ -830,7 +775,6 @@ export const scheduleRoutes: FastifyPluginAsync = async (fastify: FastifyInstanc
             teacherId: { type: 'string', format: 'uuid', description: 'Filter by teacher' },
             gradeId: { type: 'string', format: 'uuid', description: 'Filter by grade' },
             sectionId: { type: 'string', format: 'uuid', description: 'Filter by section' },
-            roomId: { type: 'string', format: 'uuid', description: 'Filter by room' },
           },
         },
       },
@@ -844,7 +788,6 @@ export const scheduleRoutes: FastifyPluginAsync = async (fastify: FastifyInstanc
           teacherId: request.query.teacherId,
           gradeId: request.query.gradeId,
           sectionId: request.query.sectionId,
-          roomId: request.query.roomId,
         };
 
         const result = await exportService.exportWeeklySchedule(filters);

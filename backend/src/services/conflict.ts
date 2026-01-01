@@ -5,7 +5,7 @@ import type { CheckConflictInput } from '../lib/validations.js';
 /**
  * Conflict types that can occur in schedule entries
  */
-export type ConflictType = 'teacher' | 'room' | 'section';
+export type ConflictType = 'teacher' | 'section';
 
 /**
  * Represents a detected schedule conflict
@@ -18,7 +18,6 @@ export interface ScheduleConflict {
     day: string;
     periodNumber: number;
     teacherName?: string;
-    roomName?: string;
     sectionName?: string;
     gradeName?: string;
   };
@@ -53,14 +52,12 @@ export class ConflictService {
     const conflicts: ScheduleConflict[] = [];
 
     // Run all conflict checks in parallel for better performance
-    const [teacherConflict, roomConflict, sectionConflict] = await Promise.all([
+    const [teacherConflict, sectionConflict] = await Promise.all([
       this.checkTeacherConflict(input),
-      this.checkRoomConflict(input),
       this.checkSectionConflict(input),
     ]);
 
     if (teacherConflict) conflicts.push(teacherConflict);
-    if (roomConflict) conflicts.push(roomConflict);
     if (sectionConflict) conflicts.push(sectionConflict);
 
     return {
@@ -108,46 +105,6 @@ export class ConflictService {
   }
 
   /**
-   * Check if room is already in use at the same time
-   * Same room, same day, same period = CONFLICT
-   */
-  async checkRoomConflict(input: CheckConflictInput): Promise<ScheduleConflict | null> {
-    const existingEntry = await this.prismaClient.scheduleEntry.findFirst({
-      where: {
-        roomId: input.roomId,
-        day: input.day,
-        periodId: input.periodId,
-        ...(input.excludeEntryId && { NOT: { id: input.excludeEntryId } }),
-      },
-      include: {
-        room: true,
-        period: true,
-        section: true,
-        grade: true,
-        teacher: true,
-      },
-    });
-
-    if (existingEntry) {
-      return {
-        type: 'room',
-        message: `القاعة "${existingEntry.room.name}" مستخدمة في نفس الوقت من قبل (${existingEntry.teacher.fullName} - ${existingEntry.grade.name} ${existingEntry.section.name})`,
-        conflictingEntryId: existingEntry.id,
-        details: {
-          day: existingEntry.day,
-          periodNumber: existingEntry.period.number,
-          roomName: existingEntry.room.name,
-          teacherName: existingEntry.teacher.fullName,
-          sectionName: existingEntry.section.name,
-          gradeName: existingEntry.grade.name,
-        },
-      };
-    }
-
-    return null;
-  }
-
-  /**
    * Check if section already has a class at the same time
    * Same section, same day, same period = CONFLICT
    */
@@ -164,14 +121,13 @@ export class ConflictService {
         grade: true,
         period: true,
         teacher: true,
-        room: true,
       },
     });
 
     if (existingEntry) {
       return {
         type: 'section',
-        message: `الشعبة "${existingEntry.grade.name} - ${existingEntry.section.name}" لديها حصة أخرى في نفس الوقت (${existingEntry.teacher.fullName} في ${existingEntry.room.name})`,
+        message: `الشعبة "${existingEntry.grade.name} - ${existingEntry.section.name}" لديها حصة أخرى في نفس الوقت (${existingEntry.teacher.fullName})`,
         conflictingEntryId: existingEntry.id,
         details: {
           day: existingEntry.day,
@@ -179,7 +135,6 @@ export class ConflictService {
           sectionName: existingEntry.section.name,
           gradeName: existingEntry.grade.name,
           teacherName: existingEntry.teacher.fullName,
-          roomName: existingEntry.room.name,
         },
       };
     }
@@ -197,24 +152,21 @@ export class ConflictService {
     gradeId: string;
     sectionId: string;
     periodId: string;
-    roomId: string;
   }): Promise<{ valid: boolean; errors: string[] }> {
     const errors: string[] = [];
 
     // Check all references in parallel
-    const [teacher, grade, section, period, room] = await Promise.all([
+    const [teacher, grade, section, period] = await Promise.all([
       this.prismaClient.teacher.findUnique({ where: { id: input.teacherId } }),
       this.prismaClient.grade.findUnique({ where: { id: input.gradeId } }),
       this.prismaClient.section.findUnique({ where: { id: input.sectionId } }),
       this.prismaClient.period.findUnique({ where: { id: input.periodId } }),
-      this.prismaClient.room.findUnique({ where: { id: input.roomId } }),
     ]);
 
     if (!teacher) errors.push('المدرس غير موجود');
     if (!grade) errors.push('الصف غير موجود');
     if (!section) errors.push('الشعبة غير موجودة');
     if (!period) errors.push('الحصة غير موجودة');
-    if (!room) errors.push('القاعة غير موجودة');
 
     // Validate section belongs to the grade
     if (section && grade && section.gradeId !== grade.id) {
