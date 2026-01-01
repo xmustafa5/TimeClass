@@ -115,13 +115,27 @@ describe('Grades API', () => {
       expect(body.data.order).toBe(3);
     });
 
-    it('should return 400 for invalid data', async () => {
-      // Send a name that's technically a string but empty - Zod should catch this
+    it('should return 400 for missing required name', async () => {
+      // Missing name triggers JSON schema validation error
       const response = await app.inject({
         method: 'POST',
         url: '/api/grades',
         payload: {
-          name: ' ', // Whitespace only - fails min length after trim
+          order: 1,
+          // missing name (required field)
+        },
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
+
+    it('should return 400 for empty name', async () => {
+      // Empty string triggers Zod validation
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/grades',
+        payload: {
+          name: '', // Empty string - fails Zod min(1)
         },
       });
 
