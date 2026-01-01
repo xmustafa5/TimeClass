@@ -6,7 +6,6 @@ import { registerSecurityPlugins } from './lib/security.js';
 import { teachersRoutes } from './routes/teachers.js';
 import { gradesRoutes } from './routes/grades.js';
 import { sectionsRoutes } from './routes/sections.js';
-import { roomsRoutes } from './routes/rooms.js';
 import { periodsRoutes } from './routes/periods.js';
 import { scheduleRoutes } from './routes/schedule.js';
 import { statsRoutes } from './routes/stats.js';
@@ -49,7 +48,6 @@ await server.register(swagger, {
       { name: 'teachers', description: 'المدرسون - Teachers management' },
       { name: 'grades', description: 'الصفوف - Grades management' },
       { name: 'sections', description: 'الشُعَب - Sections management' },
-      { name: 'rooms', description: 'القاعات - Rooms management' },
       { name: 'periods', description: 'الحصص - Periods management' },
       { name: 'schedule', description: 'الجدول الدراسي - Schedule management' },
       { name: 'export', description: 'التصدير - Data export' },
@@ -90,7 +88,6 @@ await server.register(sensible);
 await server.register(teachersRoutes, { prefix: '/api/teachers' });
 await server.register(gradesRoutes, { prefix: '/api/grades' });
 await server.register(sectionsRoutes, { prefix: '/api/sections' });
-await server.register(roomsRoutes, { prefix: '/api/rooms' });
 await server.register(periodsRoutes, { prefix: '/api/periods' });
 await server.register(scheduleRoutes, { prefix: '/api/schedule' });
 await server.register(statsRoutes, { prefix: '/api/stats' });

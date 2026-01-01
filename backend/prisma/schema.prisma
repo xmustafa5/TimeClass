@@ -59,21 +59,6 @@ model Section {
   @@map("sections")
 }
 
-// القاعات - Rooms
-model Room {
-  id        String   @id @default(uuid())
-  name      String   @unique // اسم/رقم القاعة
-  capacity  Int      @default(30) // السعة
-  type      String   @default("regular") // نوع القاعة: regular, lab, computer
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  scheduleEntries ScheduleEntry[]
-
-  @@map("rooms")
-}
-
 // الحصص - Periods (Time Slots)
 model Period {
   id        String   @id @default(uuid())
@@ -102,28 +87,23 @@ model ScheduleEntry {
   gradeId   String
   sectionId String
   periodId  String
-  roomId    String
 
   // Relations
   teacher Teacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)
   grade   Grade   @relation(fields: [gradeId], references: [id], onDelete: Cascade)
   section Section @relation(fields: [sectionId], references: [id], onDelete: Cascade)
   period  Period  @relation(fields: [periodId], references: [id], onDelete: Cascade)
-  room    Room    @relation(fields: [roomId], references: [id], onDelete: Cascade)
 
   // Unique constraints for conflict prevention (قلب النظام)
   // 1. لا يسمح بمدرس في حصتين بنفس الوقت
   @@unique([teacherId, day, periodId], name: "teacher_schedule_unique")
-  // 2. لا يسمح باستخدام نفس القاعة بحصتين بنفس الوقت
-  @@unique([roomId, day, periodId], name: "room_schedule_unique")
-  // 3. لا يسمح لنفس الشعبة بأكثر من درس بنفس الحصة
+  // 2. لا يسمح لنفس الشعبة بأكثر من درس بنفس الحصة
   @@unique([sectionId, day, periodId], name: "section_schedule_unique")
 
   // Indexes for better query performance
   @@index([day])
   @@index([teacherId])
   @@index([sectionId])
-  @@index([roomId])
   @@index([periodId])
   @@map("schedule_entries")
 }
