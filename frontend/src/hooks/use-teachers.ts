@@ -139,3 +139,42 @@ export function useDeleteTeacher() {
     },
   });
 }
+
+// Bulk delete teachers mutation
+export function useBulkDeleteTeachers() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (ids: string[]) => {
+      // Delete all teachers in parallel
+      await Promise.all(ids.map((id) => teachersApi.delete(id)));
+    },
+    onMutate: async (ids) => {
+      await queryClient.cancelQueries({ queryKey: teacherKeys.lists() });
+
+      const previousTeachers = queryClient.getQueryData<Teacher[]>(teacherKeys.lists());
+
+      // Optimistically remove from list
+      if (previousTeachers) {
+        queryClient.setQueryData<Teacher[]>(
+          teacherKeys.lists(),
+          previousTeachers.filter((t) => !ids.includes(t.id))
+        );
+      }
+
+      return { previousTeachers };
+    },
+    onError: (error: Error, _, context) => {
+      if (context?.previousTeachers) {
+        queryClient.setQueryData(teacherKeys.lists(), context.previousTeachers);
+      }
+      toast.error(error.message || 'فشل في حذف المدرسين');
+    },
+    onSuccess: (_, ids) => {
+      toast.success(`تم حذف ${ids.length} مدرس بنجاح`);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: teacherKeys.lists() });
+    },
+  });
+}
