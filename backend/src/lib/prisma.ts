@@ -36,7 +36,6 @@ export type {
   Teacher,
   Grade,
   Section,
-  Room,
   Period,
   ScheduleEntry,
 } from '../generated/prisma/client.js';

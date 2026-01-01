@@ -20,7 +20,6 @@ export interface FlatScheduleEntry {
   teacherSubject: string;
   gradeName: string;
   sectionName: string;
-  roomName: string;
   subject: string;
 }
 
@@ -50,7 +49,6 @@ export class ExportService {
     if (filters?.teacherId) where.teacherId = filters.teacherId;
     if (filters?.gradeId) where.gradeId = filters.gradeId;
     if (filters?.sectionId) where.sectionId = filters.sectionId;
-    if (filters?.roomId) where.roomId = filters.roomId;
 
     const entries = await prisma.scheduleEntry.findMany({
       where,
@@ -58,7 +56,6 @@ export class ExportService {
         teacher: true,
         grade: true,
         section: true,
-        room: true,
         period: true,
       },
       orderBy: [
@@ -77,7 +74,6 @@ export class ExportService {
       teacherSubject: entry.teacher.subject,
       gradeName: entry.grade.name,
       sectionName: entry.section.name,
-      roomName: entry.room.name,
       subject: entry.subject,
     }));
   }
@@ -106,7 +102,7 @@ export class ExportService {
     const entries = await this.getScheduleEntries(filters);
 
     if (entries.length === 0) {
-      return 'اليوم,الحصة,الوقت,المدرس,المادة,الصف,الشعبة,القاعة\n';
+      return 'اليوم,الحصة,الوقت,المدرس,المادة,الصف,الشعبة\n';
     }
 
     const parser = new Parser({
@@ -118,7 +114,6 @@ export class ExportService {
         { label: 'المادة', value: 'subject' },
         { label: 'الصف', value: 'gradeName' },
         { label: 'الشعبة', value: 'sectionName' },
-        { label: 'القاعة', value: 'roomName' },
       ],
       withBOM: true, // Add BOM for proper Arabic encoding in Excel
     });

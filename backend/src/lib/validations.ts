@@ -4,10 +4,6 @@ import { z } from 'zod';
 export const weekDays = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday'] as const;
 export const weekDaySchema = z.enum(weekDays);
 
-// Room types
-export const roomTypes = ['regular', 'lab', 'computer'] as const;
-export const roomTypeSchema = z.enum(roomTypes);
-
 // Time format validation (HH:MM)
 const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
 export const timeSchema = z.string().regex(timeRegex, 'الوقت يجب أن يكون بصيغة HH:MM');
@@ -50,18 +46,6 @@ export const updateSectionSchema = z.object({
 export type CreateSectionInput = z.infer<typeof createSectionSchema>;
 export type UpdateSectionInput = z.infer<typeof updateSectionSchema>;
 
-// ============ Room Schemas ============
-export const createRoomSchema = z.object({
-  name: z.string().min(1, 'اسم القاعة مطلوب'),
-  capacity: z.number().int().min(1, 'السعة يجب أن تكون 1 على الأقل').default(30),
-  type: roomTypeSchema.default('regular'),
-});
-
-export const updateRoomSchema = createRoomSchema.partial();
-
-export type CreateRoomInput = z.infer<typeof createRoomSchema>;
-export type UpdateRoomInput = z.infer<typeof updateRoomSchema>;
-
 // ============ Period Schemas ============
 export const createPeriodSchema = z.object({
   number: z.number().int().min(1, 'رقم الحصة يجب أن يكون 1 على الأقل').max(10),
@@ -87,7 +71,6 @@ export const createScheduleEntrySchema = z.object({
   gradeId: z.string().uuid('معرف الصف غير صالح'),
   sectionId: z.string().uuid('معرف الشعبة غير صالح'),
   periodId: z.string().uuid('معرف الحصة غير صالح'),
-  roomId: z.string().uuid('معرف القاعة غير صالح'),
   day: weekDaySchema,
   subject: z.string().min(1, 'المادة مطلوبة'),
 });
@@ -102,7 +85,6 @@ export const checkConflictSchema = z.object({
   teacherId: z.string().uuid('معرف المدرس غير صالح'),
   sectionId: z.string().uuid('معرف الشعبة غير صالح'),
   periodId: z.string().uuid('معرف الحصة غير صالح'),
-  roomId: z.string().uuid('معرف القاعة غير صالح'),
   day: weekDaySchema,
   excludeEntryId: z.string().uuid().optional(), // For update operations
 });
@@ -130,7 +112,6 @@ export const exportFilterSchema = z.object({
   teacherId: z.string().uuid().optional(),
   gradeId: z.string().uuid().optional(),
   sectionId: z.string().uuid().optional(),
-  roomId: z.string().uuid().optional(),
 });
 
 export type ExportFilterInput = z.infer<typeof exportFilterSchema>;

@@ -59,21 +59,7 @@ describe('E2E: Schedule Management Flow', () => {
       expect(sectionResponse.statusCode).toBe(201);
       const section = JSON.parse(sectionResponse.body).data;
 
-      // Step 4: Create a room
-      const roomResponse = await app.inject({
-        method: 'POST',
-        url: '/api/rooms',
-        payload: {
-          name: 'قاعة 101',
-          capacity: 30,
-          type: 'regular',
-        },
-      });
-
-      expect(roomResponse.statusCode).toBe(201);
-      const room = JSON.parse(roomResponse.body).data;
-
-      // Step 5: Create a period
+      // Step 4: Create a period
       const periodResponse = await app.inject({
         method: 'POST',
         url: '/api/periods',
@@ -87,7 +73,7 @@ describe('E2E: Schedule Management Flow', () => {
       expect(periodResponse.statusCode).toBe(201);
       const period = JSON.parse(periodResponse.body).data;
 
-      // Step 6: Create a schedule entry
+      // Step 5: Create a schedule entry
       const scheduleResponse = await app.inject({
         method: 'POST',
         url: '/api/schedule',
@@ -95,7 +81,6 @@ describe('E2E: Schedule Management Flow', () => {
           teacherId: teacher.id,
           gradeId: grade.id,
           sectionId: section.id,
-          roomId: room.id,
           periodId: period.id,
           day: 'sunday',
           subject: 'رياضيات',
@@ -106,7 +91,7 @@ describe('E2E: Schedule Management Flow', () => {
       const scheduleEntry = JSON.parse(scheduleResponse.body).data;
       expect(scheduleEntry.teacher.fullName).toBe('أحمد محمد الخالد');
 
-      // Step 7: Verify schedule appears in teacher's schedule
+      // Step 6: Verify schedule appears in teacher's schedule
       const teacherScheduleResponse = await app.inject({
         method: 'GET',
         url: `/api/schedule/by-teacher/${teacher.id}`,
@@ -117,7 +102,7 @@ describe('E2E: Schedule Management Flow', () => {
       expect(teacherSchedule).toHaveLength(1);
       expect(teacherSchedule[0].id).toBe(scheduleEntry.id);
 
-      // Step 8: Verify statistics are updated
+      // Step 7: Verify statistics are updated
       const statsResponse = await app.inject({
         method: 'GET',
         url: '/api/stats/overview',
@@ -159,10 +144,6 @@ describe('E2E: Schedule Management Flow', () => {
         data: { name: 'أ', gradeId: grade.id },
       });
 
-      const room = await testPrisma.room.create({
-        data: { name: 'قاعة 101', capacity: 30, type: 'regular' },
-      });
-
       const period = await testPrisma.period.create({
         data: { number: 1, startTime: '08:00', endTime: '08:45' },
       });
@@ -175,7 +156,6 @@ describe('E2E: Schedule Management Flow', () => {
           teacherId: teacher1.id,
           gradeId: grade.id,
           sectionId: section.id,
-          roomId: room.id,
           periodId: period.id,
           day: 'sunday',
           subject: 'رياضيات',
@@ -184,15 +164,14 @@ describe('E2E: Schedule Management Flow', () => {
 
       expect(firstEntryResponse.statusCode).toBe(201);
 
-      // Try to create conflicting entry (same room, same time)
+      // Try to create conflicting entry (same section, same time)
       const conflictResponse = await app.inject({
         method: 'POST',
         url: '/api/schedule',
         payload: {
           teacherId: teacher2.id,
           gradeId: grade.id,
-          sectionId: section.id,
-          roomId: room.id, // Same room
+          sectionId: section.id, // Same section
           periodId: period.id, // Same period
           day: 'sunday', // Same day
           subject: 'علوم',
@@ -278,10 +257,6 @@ describe('E2E: Schedule Management Flow', () => {
         data: { name: 'أ', gradeId: grade.id },
       });
 
-      const room = await testPrisma.room.create({
-        data: { name: 'قاعة 101', capacity: 30, type: 'regular' },
-      });
-
       const period = await testPrisma.period.create({
         data: { number: 1, startTime: '08:00', endTime: '08:45' },
       });
@@ -291,7 +266,6 @@ describe('E2E: Schedule Management Flow', () => {
           teacherId: teacher.id,
           gradeId: grade.id,
           sectionId: section.id,
-          roomId: room.id,
           periodId: period.id,
           day: 'sunday',
           subject: 'رياضيات',
@@ -361,11 +335,6 @@ describe('E2E: Schedule Management Flow', () => {
         testPrisma.section.create({ data: { name: 'ب', gradeId: grade.id } }),
       ]);
 
-      const rooms = await Promise.all([
-        testPrisma.room.create({ data: { name: 'قاعة 101', capacity: 30, type: 'regular' } }),
-        testPrisma.room.create({ data: { name: 'معمل العلوم', capacity: 25, type: 'lab' } }),
-      ]);
-
       const period = await testPrisma.period.create({
         data: { number: 1, startTime: '08:00', endTime: '08:45' },
       });
@@ -376,7 +345,6 @@ describe('E2E: Schedule Management Flow', () => {
           teacherId: teachers[0].id,
           gradeId: grade.id,
           sectionId: sections[0].id,
-          roomId: rooms[0].id,
           periodId: period.id,
           day: 'sunday',
           subject: 'رياضيات',
@@ -393,7 +361,6 @@ describe('E2E: Schedule Management Flow', () => {
       const overview = JSON.parse(overviewResponse.body).data;
       expect(overview.totalTeachers).toBe(2);
       expect(overview.totalSections).toBe(2);
-      expect(overview.totalRooms).toBe(2);
       expect(overview.totalScheduleEntries).toBe(1);
 
       // Get teacher stats

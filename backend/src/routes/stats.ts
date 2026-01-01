@@ -2,7 +2,6 @@ import { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import {
   statsService,
   type TeacherStats,
-  type RoomStats,
   type OverviewStats,
   type UnusedSlot,
 } from '../services/stats.js';
@@ -26,27 +25,6 @@ export const statsRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) 
       } catch (error) {
         reply.status(500);
         return { success: false, error: 'فشل في جلب إحصائيات المدرسين' };
-      }
-    }
-  );
-
-  // ============ ROOM STATISTICS ============
-  fastify.get(
-    '/rooms',
-    {
-      schema: {
-        tags: ['statistics'],
-        summary: 'Get room statistics',
-        description: 'Get utilization statistics for all rooms',
-      },
-    },
-    async (request, reply): Promise<ApiResponse<RoomStats[]>> => {
-      try {
-        const stats = await statsService.getRoomStats();
-        return { success: true, data: stats };
-      } catch (error) {
-        reply.status(500);
-        return { success: false, error: 'فشل في جلب إحصائيات القاعات' };
       }
     }
   );
@@ -79,7 +57,7 @@ export const statsRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) 
       schema: {
         tags: ['statistics'],
         summary: 'Get unused time slots',
-        description: 'Find time slots with available rooms and teachers',
+        description: 'Find time slots with available teachers',
       },
     },
     async (request, reply): Promise<ApiResponse<UnusedSlot[]>> => {

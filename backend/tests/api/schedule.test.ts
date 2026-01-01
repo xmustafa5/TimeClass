@@ -7,7 +7,6 @@ describe('Schedule API', () => {
   let testTeacherId: string;
   let testGradeId: string;
   let testSectionId: string;
-  let testRoomId: string;
   let testPeriodId: string;
 
   // Helper to create test data
@@ -31,11 +30,6 @@ describe('Schedule API', () => {
       data: { name: 'أ', gradeId: grade.id },
     });
     testSectionId = section.id;
-
-    const room = await testPrisma.room.create({
-      data: { name: 'قاعة 101', capacity: 30, type: 'regular' },
-    });
-    testRoomId = room.id;
 
     const period = await testPrisma.period.create({
       data: { number: 1, startTime: '08:00', endTime: '08:45' },
@@ -74,7 +68,6 @@ describe('Schedule API', () => {
           teacherId: testTeacherId,
           gradeId: testGradeId,
           sectionId: testSectionId,
-          roomId: testRoomId,
           periodId: testPeriodId,
           day: 'sunday',
           subject: 'الرياضيات',
@@ -110,7 +103,6 @@ describe('Schedule API', () => {
           teacherId: testTeacherId,
           gradeId: testGradeId,
           sectionId: testSectionId,
-          roomId: testRoomId,
           periodId: testPeriodId,
           day: 'sunday',
           subject: 'الرياضيات',
@@ -138,7 +130,6 @@ describe('Schedule API', () => {
           teacherId: testTeacherId,
           gradeId: testGradeId,
           sectionId: testSectionId,
-          roomId: testRoomId,
           periodId: testPeriodId,
           day: 'sunday',
           subject: 'الرياضيات',
@@ -160,7 +151,6 @@ describe('Schedule API', () => {
           teacherId: '00000000-0000-0000-0000-000000000000',
           gradeId: testGradeId,
           sectionId: testSectionId,
-          roomId: testRoomId,
           periodId: testPeriodId,
           day: 'sunday',
           subject: 'الرياضيات',
@@ -180,7 +170,6 @@ describe('Schedule API', () => {
           teacherId: testTeacherId,
           gradeId: testGradeId,
           sectionId: testSectionId,
-          roomId: testRoomId,
           periodId: testPeriodId,
           day: 'sunday',
           subject: 'الرياضيات',
@@ -192,10 +181,6 @@ describe('Schedule API', () => {
         data: { name: 'ب', gradeId: testGradeId },
       });
 
-      const room2 = await testPrisma.room.create({
-        data: { name: 'قاعة 102', capacity: 30, type: 'regular' },
-      });
-
       // Try to assign same teacher to same day/period
       const response = await app.inject({
         method: 'POST',
@@ -204,7 +189,6 @@ describe('Schedule API', () => {
           teacherId: testTeacherId,
           gradeId: testGradeId,
           sectionId: section2.id,
-          roomId: room2.id,
           periodId: testPeriodId,
           day: 'sunday',
           subject: 'الفيزياء',
@@ -217,55 +201,6 @@ describe('Schedule API', () => {
       expect(body.error).toContain('المدرس');
     });
 
-    it('should return 409 for room conflict', async () => {
-      // Create first entry
-      await testPrisma.scheduleEntry.create({
-        data: {
-          teacherId: testTeacherId,
-          gradeId: testGradeId,
-          sectionId: testSectionId,
-          roomId: testRoomId,
-          periodId: testPeriodId,
-          day: 'sunday',
-          subject: 'الرياضيات',
-        },
-      });
-
-      // Create another teacher and section
-      const teacher2 = await testPrisma.teacher.create({
-        data: {
-          fullName: 'مدرس آخر',
-          subject: 'العلوم',
-          weeklyPeriods: 20,
-          workDays: JSON.stringify(['sunday']),
-        },
-      });
-
-      const section2 = await testPrisma.section.create({
-        data: { name: 'ج', gradeId: testGradeId },
-      });
-
-      // Try to use same room at same day/period
-      const response = await app.inject({
-        method: 'POST',
-        url: '/api/schedule',
-        payload: {
-          teacherId: teacher2.id,
-          gradeId: testGradeId,
-          sectionId: section2.id,
-          roomId: testRoomId, // Same room
-          periodId: testPeriodId,
-          day: 'sunday',
-          subject: 'العلوم',
-        },
-      });
-
-      expect(response.statusCode).toBe(409);
-      const body = JSON.parse(response.payload);
-      expect(body.success).toBe(false);
-      expect(body.error).toContain('القاعة');
-    });
-
     it('should return 409 for section conflict', async () => {
       // Create first entry
       await testPrisma.scheduleEntry.create({
@@ -273,14 +208,13 @@ describe('Schedule API', () => {
           teacherId: testTeacherId,
           gradeId: testGradeId,
           sectionId: testSectionId,
-          roomId: testRoomId,
           periodId: testPeriodId,
           day: 'sunday',
           subject: 'الرياضيات',
         },
       });
 
-      // Create another teacher and room
+      // Create another teacher
       const teacher2 = await testPrisma.teacher.create({
         data: {
           fullName: 'مدرس آخر',
@@ -288,10 +222,6 @@ describe('Schedule API', () => {
           weeklyPeriods: 20,
           workDays: JSON.stringify(['sunday']),
         },
-      });
-
-      const room2 = await testPrisma.room.create({
-        data: { name: 'قاعة 103', capacity: 30, type: 'regular' },
       });
 
       // Try to schedule same section at same day/period
@@ -302,7 +232,6 @@ describe('Schedule API', () => {
           teacherId: teacher2.id,
           gradeId: testGradeId,
           sectionId: testSectionId, // Same section
-          roomId: room2.id,
           periodId: testPeriodId,
           day: 'sunday',
           subject: 'العلوم',
@@ -324,7 +253,6 @@ describe('Schedule API', () => {
         payload: {
           teacherId: testTeacherId,
           sectionId: testSectionId,
-          roomId: testRoomId,
           periodId: testPeriodId,
           day: 'sunday',
         },
@@ -344,21 +272,19 @@ describe('Schedule API', () => {
           teacherId: testTeacherId,
           gradeId: testGradeId,
           sectionId: testSectionId,
-          roomId: testRoomId,
           periodId: testPeriodId,
           day: 'sunday',
           subject: 'الرياضيات',
         },
       });
 
-      // Check for conflicts with same teacher, room, section
+      // Check for conflicts with same teacher and section
       const response = await app.inject({
         method: 'POST',
         url: '/api/schedule/check-conflicts',
         payload: {
           teacherId: testTeacherId,
           sectionId: testSectionId,
-          roomId: testRoomId,
           periodId: testPeriodId,
           day: 'sunday',
         },
@@ -379,7 +305,6 @@ describe('Schedule API', () => {
           teacherId: testTeacherId,
           gradeId: testGradeId,
           sectionId: testSectionId,
-          roomId: testRoomId,
           periodId: testPeriodId,
           day: 'sunday',
           subject: 'الرياضيات',
@@ -420,7 +345,6 @@ describe('Schedule API', () => {
           teacherId: testTeacherId,
           gradeId: testGradeId,
           sectionId: testSectionId,
-          roomId: testRoomId,
           periodId: testPeriodId,
           day: 'sunday',
           subject: 'الرياضيات',
@@ -460,7 +384,6 @@ describe('Schedule API', () => {
           teacherId: testTeacherId,
           gradeId: testGradeId,
           sectionId: testSectionId,
-          roomId: testRoomId,
           periodId: testPeriodId,
           day: 'sunday',
           subject: 'الرياضيات',
@@ -499,7 +422,6 @@ describe('Schedule API', () => {
           teacherId: testTeacherId,
           gradeId: testGradeId,
           sectionId: testSectionId,
-          roomId: testRoomId,
           periodId: testPeriodId,
           day: 'sunday',
           subject: 'الرياضيات',
@@ -534,7 +456,6 @@ describe('Schedule API', () => {
           teacherId: testTeacherId,
           gradeId: testGradeId,
           sectionId: testSectionId,
-          roomId: testRoomId,
           periodId: testPeriodId,
           day: 'sunday',
           subject: 'الرياضيات',
@@ -553,32 +474,6 @@ describe('Schedule API', () => {
     });
   });
 
-  describe('GET /api/schedule/by-room/:roomId', () => {
-    it('should return schedule for specific room', async () => {
-      await testPrisma.scheduleEntry.create({
-        data: {
-          teacherId: testTeacherId,
-          gradeId: testGradeId,
-          sectionId: testSectionId,
-          roomId: testRoomId,
-          periodId: testPeriodId,
-          day: 'sunday',
-          subject: 'الرياضيات',
-        },
-      });
-
-      const response = await app.inject({
-        method: 'GET',
-        url: `/api/schedule/by-room/${testRoomId}`,
-      });
-
-      expect(response.statusCode).toBe(200);
-      const body = JSON.parse(response.payload);
-      expect(body.success).toBe(true);
-      expect(body.data.length).toBe(1);
-    });
-  });
-
   describe('GET /api/schedule/by-grade/:gradeId', () => {
     it('should return schedule for specific grade', async () => {
       await testPrisma.scheduleEntry.create({
@@ -586,7 +481,6 @@ describe('Schedule API', () => {
           teacherId: testTeacherId,
           gradeId: testGradeId,
           sectionId: testSectionId,
-          roomId: testRoomId,
           periodId: testPeriodId,
           day: 'sunday',
           subject: 'الرياضيات',
@@ -612,7 +506,6 @@ describe('Schedule API', () => {
           teacherId: testTeacherId,
           gradeId: testGradeId,
           sectionId: testSectionId,
-          roomId: testRoomId,
           periodId: testPeriodId,
           day: 'sunday',
           subject: 'الرياضيات',

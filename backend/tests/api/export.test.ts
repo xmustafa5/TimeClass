@@ -8,7 +8,6 @@ describe('Export API', () => {
   let teacherId: string;
   let gradeId: string;
   let sectionId: string;
-  let roomId: string;
   let periodId: string;
 
   beforeEach(async () => {
@@ -36,11 +35,6 @@ describe('Export API', () => {
     });
     sectionId = section.id;
 
-    const room = await testPrisma.room.create({
-      data: { name: 'قاعة 101', capacity: 30, type: 'regular' },
-    });
-    roomId = room.id;
-
     const period = await testPrisma.period.create({
       data: { number: 1, startTime: '08:00', endTime: '08:45' },
     });
@@ -52,7 +46,6 @@ describe('Export API', () => {
         teacherId,
         gradeId,
         sectionId,
-        roomId,
         periodId,
         day: 'sunday',
         subject: 'رياضيات',
@@ -79,13 +72,16 @@ describe('Export API', () => {
 
     it('should filter export by day', async () => {
       // Add entry for another day
+      const period2 = await testPrisma.period.create({
+        data: { number: 2, startTime: '09:00', endTime: '09:45' },
+      });
+
       await testPrisma.scheduleEntry.create({
         data: {
           teacherId,
           gradeId,
           sectionId,
-          roomId,
-          periodId,
+          periodId: period2.id,
           day: 'monday',
           subject: 'رياضيات',
         },
@@ -122,7 +118,6 @@ describe('Export API', () => {
           teacherId: teacher2.id,
           gradeId,
           sectionId,
-          roomId,
           periodId: period2.id,
           day: 'sunday',
           subject: 'علوم',
@@ -189,7 +184,6 @@ describe('Export API', () => {
           teacherId,
           gradeId,
           sectionId,
-          roomId,
           periodId: period2.id,
           day: 'monday',
           subject: 'رياضيات',

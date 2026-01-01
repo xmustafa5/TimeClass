@@ -8,8 +8,6 @@ describe('Schedule Entry - Conflict Prevention', () => {
   let gradeId: string;
   let section1Id: string;
   let section2Id: string;
-  let room1Id: string;
-  let room2Id: string;
   let period1Id: string;
   let period2Id: string;
 
@@ -65,27 +63,6 @@ describe('Schedule Entry - Conflict Prevention', () => {
     });
     section2Id = section2.id;
 
-    // Create rooms
-    const room1 = await testPrisma.room.create({
-      data: {
-        id: crypto.randomUUID(),
-        name: 'قاعة 101',
-        capacity: 30,
-        type: 'regular',
-      },
-    });
-    room1Id = room1.id;
-
-    const room2 = await testPrisma.room.create({
-      data: {
-        id: crypto.randomUUID(),
-        name: 'قاعة 102',
-        capacity: 30,
-        type: 'regular',
-      },
-    });
-    room2Id = room2.id;
-
     // Create periods
     const period1 = await testPrisma.period.create({
       data: {
@@ -111,7 +88,6 @@ describe('Schedule Entry - Conflict Prevention', () => {
   const createScheduleEntry = async (data: {
     teacherId: string;
     sectionId: string;
-    roomId: string;
     periodId: string;
     day: string;
   }) => {
@@ -130,7 +106,6 @@ describe('Schedule Entry - Conflict Prevention', () => {
       const entry = await createScheduleEntry({
         teacherId: teacher1Id,
         sectionId: section1Id,
-        roomId: room1Id,
         periodId: period1Id,
         day: 'sunday',
       });
@@ -144,7 +119,6 @@ describe('Schedule Entry - Conflict Prevention', () => {
       await createScheduleEntry({
         teacherId: teacher1Id,
         sectionId: section1Id,
-        roomId: room1Id,
         periodId: period1Id,
         day: 'sunday',
       });
@@ -153,7 +127,6 @@ describe('Schedule Entry - Conflict Prevention', () => {
       const entry2 = await createScheduleEntry({
         teacherId: teacher1Id,
         sectionId: section2Id,
-        roomId: room2Id,
         periodId: period2Id,
         day: 'sunday',
       });
@@ -166,7 +139,6 @@ describe('Schedule Entry - Conflict Prevention', () => {
       await createScheduleEntry({
         teacherId: teacher1Id,
         sectionId: section1Id,
-        roomId: room1Id,
         periodId: period1Id,
         day: 'sunday',
       });
@@ -175,31 +147,8 @@ describe('Schedule Entry - Conflict Prevention', () => {
       const entry2 = await createScheduleEntry({
         teacherId: teacher1Id,
         sectionId: section2Id,
-        roomId: room2Id,
         periodId: period1Id,
         day: 'monday',
-      });
-
-      expect(entry2).toBeDefined();
-    });
-
-    it('should allow same room in different periods', async () => {
-      // Room in period 1
-      await createScheduleEntry({
-        teacherId: teacher1Id,
-        sectionId: section1Id,
-        roomId: room1Id,
-        periodId: period1Id,
-        day: 'sunday',
-      });
-
-      // Same room in period 2 - should work
-      const entry2 = await createScheduleEntry({
-        teacherId: teacher2Id,
-        sectionId: section2Id,
-        roomId: room1Id,
-        periodId: period2Id,
-        day: 'sunday',
       });
 
       expect(entry2).toBeDefined();
@@ -210,7 +159,6 @@ describe('Schedule Entry - Conflict Prevention', () => {
       await createScheduleEntry({
         teacherId: teacher1Id,
         sectionId: section1Id,
-        roomId: room1Id,
         periodId: period1Id,
         day: 'sunday',
       });
@@ -219,7 +167,6 @@ describe('Schedule Entry - Conflict Prevention', () => {
       const entry2 = await createScheduleEntry({
         teacherId: teacher2Id,
         sectionId: section1Id,
-        roomId: room2Id,
         periodId: period2Id,
         day: 'sunday',
       });
@@ -234,7 +181,6 @@ describe('Schedule Entry - Conflict Prevention', () => {
       await createScheduleEntry({
         teacherId: teacher1Id,
         sectionId: section1Id,
-        roomId: room1Id,
         periodId: period1Id,
         day: 'sunday',
       });
@@ -244,31 +190,6 @@ describe('Schedule Entry - Conflict Prevention', () => {
         createScheduleEntry({
           teacherId: teacher1Id, // Same teacher
           sectionId: section2Id, // Different section
-          roomId: room2Id, // Different room
-          periodId: period1Id, // Same period
-          day: 'sunday', // Same day
-        })
-      ).rejects.toThrow();
-    });
-  });
-
-  describe('Room Conflict (Same room, same day, same period)', () => {
-    it('should prevent using same room for two classes at the same time', async () => {
-      // First entry
-      await createScheduleEntry({
-        teacherId: teacher1Id,
-        sectionId: section1Id,
-        roomId: room1Id,
-        periodId: period1Id,
-        day: 'sunday',
-      });
-
-      // Same room, same day, same period - CONFLICT!
-      await expect(
-        createScheduleEntry({
-          teacherId: teacher2Id, // Different teacher
-          sectionId: section2Id, // Different section
-          roomId: room1Id, // Same room
           periodId: period1Id, // Same period
           day: 'sunday', // Same day
         })
@@ -282,7 +203,6 @@ describe('Schedule Entry - Conflict Prevention', () => {
       await createScheduleEntry({
         teacherId: teacher1Id,
         sectionId: section1Id,
-        roomId: room1Id,
         periodId: period1Id,
         day: 'sunday',
       });
@@ -292,7 +212,6 @@ describe('Schedule Entry - Conflict Prevention', () => {
         createScheduleEntry({
           teacherId: teacher2Id, // Different teacher
           sectionId: section1Id, // Same section
-          roomId: room2Id, // Different room
           periodId: period1Id, // Same period
           day: 'sunday', // Same day
         })
@@ -305,7 +224,6 @@ describe('Schedule Entry - Conflict Prevention', () => {
       await createScheduleEntry({
         teacherId: teacher1Id,
         sectionId: section1Id,
-        roomId: room1Id,
         periodId: period1Id,
         day: 'sunday',
       });
@@ -313,7 +231,6 @@ describe('Schedule Entry - Conflict Prevention', () => {
       await createScheduleEntry({
         teacherId: teacher2Id,
         sectionId: section2Id,
-        roomId: room2Id,
         periodId: period2Id,
         day: 'sunday',
       });
@@ -321,7 +238,6 @@ describe('Schedule Entry - Conflict Prevention', () => {
       await createScheduleEntry({
         teacherId: teacher1Id,
         sectionId: section2Id,
-        roomId: room1Id,
         periodId: period1Id,
         day: 'monday',
       });
@@ -337,7 +253,6 @@ describe('Schedule Entry - Conflict Prevention', () => {
       await createScheduleEntry({
         teacherId: teacher1Id,
         sectionId: section1Id,
-        roomId: room1Id,
         periodId: period1Id,
         day: 'sunday',
       });
@@ -345,7 +260,6 @@ describe('Schedule Entry - Conflict Prevention', () => {
       await createScheduleEntry({
         teacherId: teacher1Id,
         sectionId: section2Id,
-        roomId: room2Id,
         periodId: period2Id,
         day: 'sunday',
       });
@@ -353,7 +267,6 @@ describe('Schedule Entry - Conflict Prevention', () => {
       await createScheduleEntry({
         teacherId: teacher2Id,
         sectionId: section1Id,
-        roomId: room1Id,
         periodId: period1Id,
         day: 'monday',
       });
@@ -369,7 +282,6 @@ describe('Schedule Entry - Conflict Prevention', () => {
       await createScheduleEntry({
         teacherId: teacher1Id,
         sectionId: section1Id,
-        roomId: room1Id,
         periodId: period1Id,
         day: 'sunday',
       });
@@ -379,7 +291,6 @@ describe('Schedule Entry - Conflict Prevention', () => {
           teacher: true,
           grade: true,
           section: true,
-          room: true,
           period: true,
         },
       });
@@ -387,7 +298,6 @@ describe('Schedule Entry - Conflict Prevention', () => {
       expect(entries).toHaveLength(1);
       expect(entries[0].teacher.fullName).toBe('أحمد محمد');
       expect(entries[0].section.name).toBe('أ');
-      expect(entries[0].room.name).toBe('قاعة 101');
       expect(entries[0].period.number).toBe(1);
     });
   });
@@ -397,7 +307,6 @@ describe('Schedule Entry - Conflict Prevention', () => {
       await createScheduleEntry({
         teacherId: teacher1Id,
         sectionId: section1Id,
-        roomId: room1Id,
         periodId: period1Id,
         day: 'sunday',
       });
@@ -409,24 +318,6 @@ describe('Schedule Entry - Conflict Prevention', () => {
       const entries = await testPrisma.scheduleEntry.findMany({
         where: { teacherId: teacher1Id },
       });
-
-      expect(entries).toHaveLength(0);
-    });
-
-    it('should delete schedule entries when room is deleted', async () => {
-      await createScheduleEntry({
-        teacherId: teacher1Id,
-        sectionId: section1Id,
-        roomId: room1Id,
-        periodId: period1Id,
-        day: 'sunday',
-      });
-
-      // Delete room
-      await testPrisma.room.delete({ where: { id: room1Id } });
-
-      // Schedule entry should be deleted
-      const entries = await testPrisma.scheduleEntry.findMany();
 
       expect(entries).toHaveLength(0);
     });
