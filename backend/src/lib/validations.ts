@@ -117,6 +117,24 @@ export const bulkScheduleEntrySchema = z.object({
 
 export type BulkScheduleEntryInput = z.infer<typeof bulkScheduleEntrySchema>;
 
+// ============ Bulk Teacher Schema ============
+export const bulkTeacherSchema = z.object({
+  teachers: z.array(createTeacherSchema).min(1, 'يجب إدخال مدرس واحد على الأقل'),
+});
+
+export type BulkTeacherInput = z.infer<typeof bulkTeacherSchema>;
+
+// ============ Export Filter Schema ============
+export const exportFilterSchema = z.object({
+  day: weekDaySchema.optional(),
+  teacherId: z.string().uuid().optional(),
+  gradeId: z.string().uuid().optional(),
+  sectionId: z.string().uuid().optional(),
+  roomId: z.string().uuid().optional(),
+});
+
+export type ExportFilterInput = z.infer<typeof exportFilterSchema>;
+
 // ============ Pagination Schema ============
 export const paginationSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),

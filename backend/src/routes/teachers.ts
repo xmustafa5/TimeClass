@@ -3,6 +3,7 @@ import { prisma } from '../lib/prisma.js';
 import {
   createTeacherSchema,
   updateTeacherSchema,
+  bulkTeacherSchema,
   paginationSchema,
   formatZodError,
 } from '../lib/validations.js';
@@ -283,6 +284,83 @@ export const teachersRoutes: FastifyPluginAsync = async (fastify: FastifyInstanc
       } catch (error) {
         reply.status(500);
         return { success: false, error: 'فشل في جلب المدرسين' };
+      }
+    }
+  );
+
+  // Bulk create teachers
+  fastify.post(
+    '/bulk',
+    {
+      schema: {
+        tags: ['teachers'],
+        summary: 'Bulk create teachers',
+        description: 'Create multiple teachers in a single request using Prisma createMany',
+        body: {
+          type: 'object',
+          required: ['teachers'],
+          properties: {
+            teachers: {
+              type: 'array',
+              items: {
+                type: 'object',
+                required: ['fullName', 'subject', 'workDays'],
+                properties: {
+                  fullName: { type: 'string', minLength: 2 },
+                  subject: { type: 'string', minLength: 1 },
+                  weeklyPeriods: { type: 'number', default: 20 },
+                  workDays: { type: 'array', items: { type: 'string' } },
+                  notes: { type: 'string', nullable: true },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    async (request, reply): Promise<ApiResponse<{ created: number; teachers: Teacher[] }>> => {
+      try {
+        const result = bulkTeacherSchema.safeParse(request.body);
+
+        if (!result.success) {
+          reply.status(400);
+          return { success: false, error: formatZodError(result.error) };
+        }
+
+        const { teachers: teachersInput } = result.data;
+
+        // Use Prisma transaction for atomic bulk insert
+        const createdTeachers = await prisma.$transaction(async (tx) => {
+          const results: Teacher[] = [];
+
+          for (const teacher of teachersInput) {
+            const created = await tx.teacher.create({
+              data: {
+                fullName: teacher.fullName,
+                subject: teacher.subject,
+                weeklyPeriods: teacher.weeklyPeriods ?? 20,
+                workDays: JSON.stringify(teacher.workDays),
+                notes: teacher.notes,
+              },
+            });
+            results.push(created);
+          }
+
+          return results;
+        });
+
+        reply.status(201);
+        return {
+          success: true,
+          data: {
+            created: createdTeachers.length,
+            teachers: createdTeachers,
+          },
+          message: `تم إنشاء ${createdTeachers.length} مدرس بنجاح`,
+        };
+      } catch (error) {
+        reply.status(500);
+        return { success: false, error: 'فشل في إنشاء المدرسين' };
       }
     }
   );

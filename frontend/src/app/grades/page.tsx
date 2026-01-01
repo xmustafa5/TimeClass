@@ -1,116 +1,206 @@
 'use client';
 
 import { useState } from 'react';
-
-interface Grade {
-  id: string;
-  name: string;
-}
+import { useRouter } from 'next/navigation';
+import { Plus, GraduationCap, Search } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { GradeFormDialog } from '@/components/grades/GradeFormDialog';
+import { GradeCard } from '@/components/grades/GradeCard';
+import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
+import { EmptyState } from '@/components/shared/EmptyState';
+import { CardSkeleton } from '@/components/shared/PageSkeleton';
+import {
+  useGrades,
+  useCreateGrade,
+  useUpdateGrade,
+  useDeleteGrade,
+} from '@/hooks/use-grades';
+import { useSections } from '@/hooks/use-sections';
+import type { Grade } from '@/types';
+import type { GradeFormData } from '@/lib/validations';
 
 export default function GradesPage() {
-  const [grades, setGrades] = useState<Grade[]>([]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState({ name: '' });
+  const router = useRouter();
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [selectedGrade, setSelectedGrade] = useState<Grade | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const newGrade: Grade = {
-      id: crypto.randomUUID(),
-      ...formData,
-    };
-    setGrades([...grades, newGrade]);
-    setFormData({ name: '' });
-    setIsModalOpen(false);
+  // Data fetching
+  const { data: grades = [], isLoading: gradesLoading } = useGrades();
+  const { data: sections = [] } = useSections();
+
+  // Mutations
+  const createGrade = useCreateGrade();
+  const updateGrade = useUpdateGrade();
+  const deleteGrade = useDeleteGrade();
+
+  // Filter grades
+  const filteredGrades = searchQuery
+    ? grades.filter((g) => g.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    : grades;
+
+  // Handlers
+  const handleAdd = () => {
+    setSelectedGrade(null);
+    setIsFormOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    setGrades(grades.filter(g => g.id !== id));
+  const handleEdit = (grade: Grade) => {
+    setSelectedGrade(grade);
+    setIsFormOpen(true);
   };
+
+  const handleDelete = (grade: Grade) => {
+    setSelectedGrade(grade);
+    setIsDeleteOpen(true);
+  };
+
+  const handleViewSections = (grade: Grade) => {
+    router.push(`/sections?gradeId=${grade.id}`);
+  };
+
+  const handleFormSubmit = (data: GradeFormData) => {
+    if (selectedGrade) {
+      updateGrade.mutate(
+        { id: selectedGrade.id, data },
+        { onSuccess: () => setIsFormOpen(false) }
+      );
+    } else {
+      createGrade.mutate(data, {
+        onSuccess: () => setIsFormOpen(false),
+      });
+    }
+  };
+
+  const handleConfirmDelete = () => {
+    if (selectedGrade) {
+      deleteGrade.mutate(selectedGrade.id, {
+        onSuccess: () => {
+          setIsDeleteOpen(false);
+          setSelectedGrade(null);
+        },
+      });
+    }
+  };
+
+  const isSubmitting = createGrade.isPending || updateGrade.isPending;
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">الصفوف</h1>
-          <p className="text-gray-600 mt-1">إدارة الصفوف الدراسية</p>
+          <h1 className="text-3xl font-bold">الصفوف</h1>
+          <p className="text-muted-foreground mt-1">
+            إدارة الصفوف الدراسية والشعب التابعة لها
+          </p>
         </div>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          + إضافة صف
-        </button>
+        <Button onClick={handleAdd} className="gap-2 self-start">
+          <Plus className="h-4 w-4" />
+          إضافة صف
+        </Button>
+      </div>
+
+      {/* Stats */}
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">إجمالي الصفوف</CardTitle>
+            <GraduationCap className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{grades.length}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">إجمالي الشعب</CardTitle>
+            <GraduationCap className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{sections.length}</div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Search */}
+      <div className="relative max-w-sm">
+        <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="البحث في الصفوف..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pr-10"
+        />
       </div>
 
       {/* Grades Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {grades.length === 0 ? (
-          <div className="col-span-full bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center text-gray-500">
-            <p className="text-lg">لا توجد صفوف حالياً</p>
-            <p className="text-sm mt-2">اضغط على "إضافة صف" لإضافة صف جديد</p>
-          </div>
-        ) : (
-          grades.map((grade) => (
-            <div
+      {gradesLoading ? (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {[...Array(6)].map((_, i) => (
+            <CardSkeleton key={i} />
+          ))}
+        </div>
+      ) : filteredGrades.length === 0 ? (
+        <Card>
+          <CardContent className="p-6">
+            {searchQuery ? (
+              <EmptyState
+                icon={Search}
+                title="لا توجد نتائج"
+                description="لم يتم العثور على صفوف تطابق بحثك"
+              />
+            ) : (
+              <EmptyState
+                icon={GraduationCap}
+                title="لا توجد صفوف"
+                description="لم يتم إضافة أي صفوف بعد. اضغط على زر الإضافة للبدء."
+                action={{
+                  label: 'إضافة صف',
+                  onClick: handleAdd,
+                }}
+              />
+            )}
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {filteredGrades.map((grade) => (
+            <GradeCard
               key={grade.id}
-              className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow"
-            >
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900">{grade.name}</h3>
-                  <p className="text-sm text-gray-500 mt-1">الصف الدراسي</p>
-                </div>
-                <button
-                  onClick={() => handleDelete(grade.id)}
-                  className="text-red-600 hover:text-red-800 text-sm"
-                >
-                  حذف
-                </button>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-
-      {/* Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4">إضافة صف جديد</h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  اسم الصف
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="مثال: الصف الأول"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ name: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-              <div className="flex gap-3 pt-4">
-                <button
-                  type="submit"
-                  className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700"
-                >
-                  إضافة
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="flex-1 bg-gray-100 text-gray-700 py-2 rounded-lg hover:bg-gray-200"
-                >
-                  إلغاء
-                </button>
-              </div>
-            </form>
-          </div>
+              grade={grade}
+              sections={sections}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onViewSections={handleViewSections}
+            />
+          ))}
         </div>
       )}
+
+      {/* Form Dialog */}
+      <GradeFormDialog
+        open={isFormOpen}
+        onOpenChange={setIsFormOpen}
+        onSubmit={handleFormSubmit}
+        grade={selectedGrade}
+        isLoading={isSubmitting}
+      />
+
+      {/* Delete Confirmation */}
+      <ConfirmDialog
+        open={isDeleteOpen}
+        onOpenChange={setIsDeleteOpen}
+        title="حذف الصف"
+        description={`هل أنت متأكد من حذف "${selectedGrade?.name}"؟ سيتم حذف جميع الشعب التابعة لهذا الصف.`}
+        confirmLabel="حذف"
+        onConfirm={handleConfirmDelete}
+        variant="destructive"
+        loading={deleteGrade.isPending}
+      />
     </div>
   );
 }
