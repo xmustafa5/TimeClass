@@ -1,381 +1,286 @@
 'use client';
 
-import { useState } from 'react';
-import { WeekDay, weekDaysArabic } from '@/types';
-
-interface ScheduleEntry {
-  id: string;
-  teacherId: string;
-  teacherName: string;
-  gradeId: string;
-  sectionId: string;
-  sectionName: string;
-  periodId: string;
-  periodNumber: number;
-  roomId: string;
-  roomName: string;
-  day: WeekDay;
-  subject: string;
-}
-
-const weekDays: WeekDay[] = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday'];
-const periodNumbers = [1, 2, 3, 4, 5, 6, 7];
-
-// Teacher colors for visual distinction
-const teacherColors = [
-  'bg-blue-100 border-blue-300 text-blue-800',
-  'bg-green-100 border-green-300 text-green-800',
-  'bg-purple-100 border-purple-300 text-purple-800',
-  'bg-orange-100 border-orange-300 text-orange-800',
-  'bg-pink-100 border-pink-300 text-pink-800',
-  'bg-teal-100 border-teal-300 text-teal-800',
-  'bg-yellow-100 border-yellow-300 text-yellow-800',
-];
+import { useState, useMemo, useCallback } from 'react';
+import { Calendar, Printer, Download } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { CardSkeleton } from '@/components/shared/PageSkeleton';
+import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
+import {
+  ScheduleGrid,
+  TeacherLegend,
+  ScheduleFiltersPanel,
+  ScheduleEntryFormDialog,
+  type ScheduleFilters,
+} from '@/components/schedule';
+import {
+  useSchedule,
+  useCreateScheduleEntry,
+  useUpdateScheduleEntry,
+  useDeleteScheduleEntry,
+} from '@/hooks/use-schedule';
+import { useTeachers } from '@/hooks/use-teachers';
+import { useGrades } from '@/hooks/use-grades';
+import { useSections } from '@/hooks/use-sections';
+import { useRooms } from '@/hooks/use-rooms';
+import { usePeriods } from '@/hooks/use-periods';
+import type { ScheduleEntry, WeekDay } from '@/types';
+import type { ScheduleEntryFormData } from '@/lib/validations';
 
 export default function SchedulePage() {
-  const [scheduleEntries, setScheduleEntries] = useState<ScheduleEntry[]>([]);
+  // View state
   const [viewMode, setViewMode] = useState<'weekly' | 'daily'>('weekly');
   const [selectedDay, setSelectedDay] = useState<WeekDay>('sunday');
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedSlot, setSelectedSlot] = useState<{ day: WeekDay; period: number } | null>(null);
+  const [filters, setFilters] = useState<ScheduleFilters>({});
 
-  // Mock data for dropdowns
-  const [teachers] = useState([
-    { id: '1', name: 'أحمد محمد', subject: 'الرياضيات' },
-    { id: '2', name: 'سارة علي', subject: 'العلوم' },
-    { id: '3', name: 'محمود خالد', subject: 'اللغة العربية' },
-  ]);
-  const [sections] = useState([
-    { id: '1', name: 'الأول - أ' },
-    { id: '2', name: 'الأول - ب' },
-    { id: '3', name: 'الثاني - أ' },
-  ]);
-  const [rooms] = useState([
-    { id: '1', name: 'قاعة 101' },
-    { id: '2', name: 'قاعة 102' },
-    { id: '3', name: 'مختبر العلوم' },
-  ]);
+  // Dialog state
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [selectedEntry, setSelectedEntry] = useState<ScheduleEntry | null>(null);
+  const [selectedSlot, setSelectedSlot] = useState<{ day: WeekDay; periodId: string } | null>(null);
 
-  const [formData, setFormData] = useState({
-    teacherId: '',
-    sectionId: '',
-    roomId: '',
-    subject: '',
-  });
+  // Data fetching
+  const { data: entries = [], isLoading: entriesLoading } = useSchedule();
+  const { data: teachers = [], isLoading: teachersLoading } = useTeachers();
+  const { data: grades = [], isLoading: gradesLoading } = useGrades();
+  const { data: sections = [], isLoading: sectionsLoading } = useSections();
+  const { data: rooms = [], isLoading: roomsLoading } = useRooms();
+  const { data: periods = [], isLoading: periodsLoading } = usePeriods();
 
-  const getTeacherColor = (teacherId: string) => {
-    const index = teachers.findIndex(t => t.id === teacherId);
-    return teacherColors[index % teacherColors.length];
-  };
+  // Mutations
+  const createEntry = useCreateScheduleEntry();
+  const updateEntry = useUpdateScheduleEntry();
+  const deleteEntry = useDeleteScheduleEntry();
 
-  const getEntryForSlot = (day: WeekDay, periodNumber: number) => {
-    return scheduleEntries.find(e => e.day === day && e.periodNumber === periodNumber);
-  };
+  const isLoading = entriesLoading || teachersLoading || gradesLoading ||
+                    sectionsLoading || roomsLoading || periodsLoading;
 
-  const handleSlotClick = (day: WeekDay, period: number) => {
-    const existing = getEntryForSlot(day, period);
-    if (!existing) {
-      setSelectedSlot({ day, period });
-      setIsModalOpen(true);
+  // Filter entries based on active filters
+  const filteredEntries = useMemo(() => {
+    return entries.filter((entry) => {
+      if (filters.teacherId && entry.teacherId !== filters.teacherId) return false;
+      if (filters.gradeId && entry.gradeId !== filters.gradeId) return false;
+      if (filters.sectionId && entry.sectionId !== filters.sectionId) return false;
+      if (filters.roomId && entry.roomId !== filters.roomId) return false;
+      return true;
+    });
+  }, [entries, filters]);
+
+  // Handlers
+  const handleSlotClick = useCallback((day: WeekDay, periodId: string) => {
+    setSelectedEntry(null);
+    setSelectedSlot({ day, periodId });
+    setIsFormOpen(true);
+  }, []);
+
+  const handleEntryClick = useCallback((entry: ScheduleEntry) => {
+    setSelectedEntry(entry);
+    setSelectedSlot({ day: entry.day, periodId: entry.periodId });
+    setIsFormOpen(true);
+  }, []);
+
+  const handleFormSubmit = useCallback((data: ScheduleEntryFormData) => {
+    if (selectedEntry) {
+      updateEntry.mutate(
+        { id: selectedEntry.id, data },
+        {
+          onSuccess: () => {
+            setIsFormOpen(false);
+            setSelectedEntry(null);
+            setSelectedSlot(null);
+          },
+        }
+      );
+    } else {
+      createEntry.mutate(data, {
+        onSuccess: () => {
+          setIsFormOpen(false);
+          setSelectedSlot(null);
+        },
+      });
     }
-  };
+  }, [selectedEntry, createEntry, updateEntry]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedSlot) return;
-
-    const teacher = teachers.find(t => t.id === formData.teacherId);
-    const section = sections.find(s => s.id === formData.sectionId);
-    const room = rooms.find(r => r.id === formData.roomId);
-
-    // Check for conflicts
-    const teacherConflict = scheduleEntries.find(
-      e => e.teacherId === formData.teacherId && e.day === selectedSlot.day && e.periodNumber === selectedSlot.period
-    );
-    const roomConflict = scheduleEntries.find(
-      e => e.roomId === formData.roomId && e.day === selectedSlot.day && e.periodNumber === selectedSlot.period
-    );
-    const sectionConflict = scheduleEntries.find(
-      e => e.sectionId === formData.sectionId && e.day === selectedSlot.day && e.periodNumber === selectedSlot.period
-    );
-
-    if (teacherConflict) {
-      alert('تضارب: المدرس لديه حصة أخرى في هذا الوقت');
-      return;
+  const handleDeleteClick = useCallback(() => {
+    if (selectedEntry) {
+      setIsFormOpen(false);
+      setIsDeleteOpen(true);
     }
-    if (roomConflict) {
-      alert('تضارب: القاعة مستخدمة في هذا الوقت');
-      return;
+  }, [selectedEntry]);
+
+  const handleConfirmDelete = useCallback(() => {
+    if (selectedEntry) {
+      deleteEntry.mutate(selectedEntry.id, {
+        onSuccess: () => {
+          setIsDeleteOpen(false);
+          setSelectedEntry(null);
+          setSelectedSlot(null);
+        },
+      });
     }
-    if (sectionConflict) {
-      alert('تضارب: الشعبة لديها حصة أخرى في هذا الوقت');
-      return;
-    }
+  }, [selectedEntry, deleteEntry]);
 
-    const newEntry: ScheduleEntry = {
-      id: crypto.randomUUID(),
-      teacherId: formData.teacherId,
-      teacherName: teacher?.name || '',
-      gradeId: '1',
-      sectionId: formData.sectionId,
-      sectionName: section?.name || '',
-      periodId: selectedSlot.period.toString(),
-      periodNumber: selectedSlot.period,
-      roomId: formData.roomId,
-      roomName: room?.name || '',
-      day: selectedSlot.day,
-      subject: formData.subject || teacher?.subject || '',
-    };
+  const handlePrint = useCallback(() => {
+    window.print();
+  }, []);
 
-    setScheduleEntries([...scheduleEntries, newEntry]);
-    setFormData({ teacherId: '', sectionId: '', roomId: '', subject: '' });
-    setIsModalOpen(false);
-    setSelectedSlot(null);
-  };
-
-  const handleDelete = (id: string) => {
-    setScheduleEntries(scheduleEntries.filter(e => e.id !== id));
-  };
+  const isSubmitting = createEntry.isPending || updateEntry.isPending;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 print:space-y-4">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between gap-4 print:hidden">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">الجدول الدراسي</h1>
-          <p className="text-gray-600 mt-1">عرض وإدارة الجدول الأسبوعي</p>
+          <h1 className="text-3xl font-bold">الجدول الدراسي</h1>
+          <p className="text-muted-foreground mt-1">
+            عرض وإدارة الجدول الأسبوعي للمدرسين والشعب
+          </p>
         </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setViewMode('weekly')}
-            className={`px-4 py-2 rounded-lg ${
-              viewMode === 'weekly' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'
-            }`}
-          >
-            أسبوعي
-          </button>
-          <button
-            onClick={() => setViewMode('daily')}
-            className={`px-4 py-2 rounded-lg ${
-              viewMode === 'daily' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'
-            }`}
-          >
-            يومي
-          </button>
+        <div className="flex gap-2 self-start">
+          <Button variant="outline" onClick={handlePrint} className="gap-2">
+            <Printer className="h-4 w-4" />
+            طباعة
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="gap-2">
+                <Download className="h-4 w-4" />
+                تصدير
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem disabled>
+                تصدير PDF (قريباً)
+              </DropdownMenuItem>
+              <DropdownMenuItem disabled>
+                تصدير Excel (قريباً)
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
-      {/* Day selector for daily view */}
-      {viewMode === 'daily' && (
-        <div className="flex gap-2">
-          {weekDays.map((day) => (
-            <button
-              key={day}
-              onClick={() => setSelectedDay(day)}
-              className={`px-4 py-2 rounded-lg ${
-                selectedDay === day ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'
-              }`}
-            >
-              {weekDaysArabic[day]}
-            </button>
-          ))}
-        </div>
-      )}
+      {/* Print header (visible only when printing) */}
+      <div className="hidden print:block text-center mb-6">
+        <h1 className="text-2xl font-bold">الجدول الدراسي الأسبوعي</h1>
+        <p className="text-sm text-muted-foreground">
+          {new Date().toLocaleDateString('ar-SA', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+          })}
+        </p>
+      </div>
+
+      {/* Filters */}
+      <div className="print:hidden">
+        <ScheduleFiltersPanel
+          filters={filters}
+          onFiltersChange={setFilters}
+          teachers={teachers}
+          grades={grades}
+          sections={sections}
+          rooms={rooms}
+          viewMode={viewMode}
+          selectedDay={selectedDay}
+          onViewModeChange={setViewMode}
+          onSelectedDayChange={setSelectedDay}
+        />
+      </div>
 
       {/* Schedule Grid */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th className="px-4 py-3 text-right text-sm font-medium text-gray-500 w-20">
-                  الحصة
-                </th>
-                {viewMode === 'weekly' ? (
-                  weekDays.map((day) => (
-                    <th key={day} className="px-4 py-3 text-center text-sm font-medium text-gray-500">
-                      {weekDaysArabic[day]}
-                    </th>
-                  ))
-                ) : (
-                  <th className="px-4 py-3 text-center text-sm font-medium text-gray-500">
-                    {weekDaysArabic[selectedDay]}
-                  </th>
-                )}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {periodNumbers.map((period) => (
-                <tr key={period}>
-                  <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                    {period}
-                  </td>
-                  {viewMode === 'weekly' ? (
-                    weekDays.map((day) => {
-                      const entry = getEntryForSlot(day, period);
-                      return (
-                        <td
-                          key={day}
-                          className="px-2 py-2"
-                          onClick={() => !entry && handleSlotClick(day, period)}
-                        >
-                          {entry ? (
-                            <div
-                              className={`p-2 rounded-lg border ${getTeacherColor(entry.teacherId)} cursor-pointer`}
-                              onClick={() => handleDelete(entry.id)}
-                            >
-                              <p className="font-medium text-sm">{entry.teacherName}</p>
-                              <p className="text-xs">{entry.subject}</p>
-                              <p className="text-xs opacity-75">{entry.sectionName}</p>
-                            </div>
-                          ) : (
-                            <div className="h-16 border-2 border-dashed border-gray-200 rounded-lg hover:border-blue-400 hover:bg-blue-50 cursor-pointer transition-colors flex items-center justify-center text-gray-400 hover:text-blue-500">
-                              +
-                            </div>
-                          )}
-                        </td>
-                      );
-                    })
-                  ) : (
-                    <td className="px-2 py-2" onClick={() => handleSlotClick(selectedDay, period)}>
-                      {(() => {
-                        const entry = getEntryForSlot(selectedDay, period);
-                        return entry ? (
-                          <div
-                            className={`p-3 rounded-lg border ${getTeacherColor(entry.teacherId)}`}
-                            onClick={() => handleDelete(entry.id)}
-                          >
-                            <p className="font-medium">{entry.teacherName}</p>
-                            <p className="text-sm">{entry.subject}</p>
-                            <p className="text-sm opacity-75">{entry.sectionName} - {entry.roomName}</p>
-                          </div>
-                        ) : (
-                          <div className="h-20 border-2 border-dashed border-gray-200 rounded-lg hover:border-blue-400 hover:bg-blue-50 cursor-pointer transition-colors flex items-center justify-center text-gray-400 hover:text-blue-500">
-                            + إضافة حصة
-                          </div>
-                        );
-                      })()}
-                    </td>
-                  )}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Legend */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-        <h3 className="font-medium text-gray-900 mb-3">المدرسون</h3>
-        <div className="flex flex-wrap gap-2">
-          {teachers.map((teacher, index) => (
-            <span
-              key={teacher.id}
-              className={`px-3 py-1 rounded-full text-sm ${teacherColors[index % teacherColors.length]}`}
-            >
-              {teacher.name} - {teacher.subject}
-            </span>
+      {isLoading ? (
+        <div className="space-y-4">
+          {[...Array(6)].map((_, i) => (
+            <CardSkeleton key={i} />
           ))}
         </div>
+      ) : (
+        <>
+          <ScheduleGrid
+            entries={filteredEntries}
+            periods={periods}
+            teachers={teachers}
+            sections={sections}
+            rooms={rooms}
+            viewMode={viewMode}
+            selectedDay={selectedDay}
+            onSlotClick={handleSlotClick}
+            onEntryClick={handleEntryClick}
+          />
+
+          {/* Teacher Legend */}
+          <div className="print:hidden">
+            <TeacherLegend teachers={teachers} entries={filteredEntries} />
+          </div>
+        </>
+      )}
+
+      {/* Stats */}
+      <div className="grid gap-4 md:grid-cols-4 print:hidden">
+        <div className="bg-card border rounded-lg p-4">
+          <p className="text-sm text-muted-foreground">إجمالي الحصص</p>
+          <p className="text-2xl font-bold">{entries.length}</p>
+        </div>
+        <div className="bg-card border rounded-lg p-4">
+          <p className="text-sm text-muted-foreground">الحصص المعروضة</p>
+          <p className="text-2xl font-bold">{filteredEntries.length}</p>
+        </div>
+        <div className="bg-card border rounded-lg p-4">
+          <p className="text-sm text-muted-foreground">المدرسون النشطون</p>
+          <p className="text-2xl font-bold">
+            {new Set(entries.map((e) => e.teacherId)).size}
+          </p>
+        </div>
+        <div className="bg-card border rounded-lg p-4">
+          <p className="text-sm text-muted-foreground">الخانات الفارغة</p>
+          <p className="text-2xl font-bold">
+            {periods.length * 5 - entries.length}
+          </p>
+        </div>
       </div>
 
-      {/* Modal */}
-      {isModalOpen && selectedSlot && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md">
-            <h2 className="text-xl font-bold mb-2">إضافة حصة</h2>
-            <p className="text-gray-600 mb-4">
-              {weekDaysArabic[selectedSlot.day]} - الحصة {selectedSlot.period}
-            </p>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  المدرس
-                </label>
-                <select
-                  required
-                  value={formData.teacherId}
-                  onChange={(e) => setFormData({ ...formData, teacherId: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="">اختر المدرس</option>
-                  {teachers.map((teacher) => (
-                    <option key={teacher.id} value={teacher.id}>
-                      {teacher.name} - {teacher.subject}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  الشعبة
-                </label>
-                <select
-                  required
-                  value={formData.sectionId}
-                  onChange={(e) => setFormData({ ...formData, sectionId: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="">اختر الشعبة</option>
-                  {sections.map((section) => (
-                    <option key={section.id} value={section.id}>
-                      {section.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  القاعة
-                </label>
-                <select
-                  required
-                  value={formData.roomId}
-                  onChange={(e) => setFormData({ ...formData, roomId: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="">اختر القاعة</option>
-                  {rooms.map((room) => (
-                    <option key={room.id} value={room.id}>
-                      {room.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  المادة (اختياري)
-                </label>
-                <input
-                  type="text"
-                  placeholder="سيتم استخدام مادة المدرس تلقائياً"
-                  value={formData.subject}
-                  onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-              <div className="flex gap-3 pt-4">
-                <button
-                  type="submit"
-                  className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700"
-                >
-                  إضافة
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsModalOpen(false);
-                    setSelectedSlot(null);
-                  }}
-                  className="flex-1 bg-gray-100 text-gray-700 py-2 rounded-lg hover:bg-gray-200"
-                >
-                  إلغاء
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+      {/* Form Dialog */}
+      {selectedSlot && (
+        <ScheduleEntryFormDialog
+          open={isFormOpen}
+          onOpenChange={(open) => {
+            setIsFormOpen(open);
+            if (!open) {
+              setSelectedEntry(null);
+              setSelectedSlot(null);
+            }
+          }}
+          onSubmit={handleFormSubmit}
+          entry={selectedEntry}
+          day={selectedSlot.day}
+          periodId={selectedSlot.periodId}
+          teachers={teachers}
+          grades={grades}
+          sections={sections}
+          rooms={rooms}
+          periods={periods}
+          existingEntries={entries}
+          isLoading={isSubmitting}
+        />
       )}
+
+      {/* Delete Confirmation */}
+      <ConfirmDialog
+        open={isDeleteOpen}
+        onOpenChange={setIsDeleteOpen}
+        title="حذف الحصة"
+        description="هل أنت متأكد من حذف هذه الحصة من الجدول؟ لا يمكن التراجع عن هذا الإجراء."
+        confirmLabel="حذف"
+        onConfirm={handleConfirmDelete}
+        variant="destructive"
+        loading={deleteEntry.isPending}
+      />
     </div>
   );
 }
