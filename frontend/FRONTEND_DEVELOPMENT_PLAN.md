@@ -86,18 +86,17 @@
 - Configure data fetching patterns
 
 **Tasks:**
-- [ ] Install and configure Zustand or React Context
-- [ ] Create stores for each entity (teachers, grades, etc.)
-- [ ] Set up React Query for server state
-- [ ] Configure query caching strategies
-- [ ] Implement optimistic updates
+- [ ] Install TanStack Query (React Query)
+- [ ] Set up QueryClientProvider
+- [ ] Configure staleTime and gcTime for caching
 - [ ] Create loading state management
 - [ ] Set up error state handling
+- [ ] Use React Context for UI-only state (modals, filters)
 
 **Deliverables:**
-- State management architecture
-- Data fetching hooks
-- Caching configuration
+- TanStack Query setup
+- Data fetching configuration
+- Error/loading state patterns
 
 ### MODULE 2.2: API Client & Services
 **Objectives:**

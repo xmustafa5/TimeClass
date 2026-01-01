@@ -1,0 +1,129 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// المدرسون - Teachers
+model Teacher {
+  id            String   @id @default(uuid())
+  fullName      String   // الاسم الكامل
+  subject       String   // المادة
+  weeklyPeriods Int      @default(20) // عدد الحصص الأسبوعية
+  workDays      String   // أيام الدوام (stored as JSON string: ["sunday", "monday", ...])
+  notes         String?  // ملاحظات
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  scheduleEntries ScheduleEntry[]
+
+  @@map("teachers")
+}
+
+// الصفوف - Grades
+model Grade {
+  id        String   @id @default(uuid())
+  name      String   @unique // اسم الصف (أول، ثاني، ثالث...)
+  order     Int      @default(0) // ترتيب العرض
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  sections        Section[]
+  scheduleEntries ScheduleEntry[]
+
+  @@map("grades")
+}
+
+// الشُعَب - Sections
+model Section {
+  id        String   @id @default(uuid())
+  name      String   // اسم الشعبة (أ، ب، ج)
+  gradeId   String   // تابعة لصف محدد
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  grade           Grade           @relation(fields: [gradeId], references: [id], onDelete: Cascade)
+  scheduleEntries ScheduleEntry[]
+
+  // Unique constraint: section name must be unique within a grade
+  @@unique([gradeId, name])
+  @@map("sections")
+}
+
+// القاعات - Rooms
+model Room {
+  id        String   @id @default(uuid())
+  name      String   @unique // اسم/رقم القاعة
+  capacity  Int      @default(30) // السعة
+  type      String   @default("regular") // نوع القاعة: regular, lab, computer
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  scheduleEntries ScheduleEntry[]
+
+  @@map("rooms")
+}
+
+// الحصص - Periods (Time Slots)
+model Period {
+  id        String   @id @default(uuid())
+  number    Int      @unique // رقم الحصة (1-7)
+  startTime String   // وقت البداية (HH:MM format)
+  endTime   String   // وقت النهاية (HH:MM format)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  scheduleEntries ScheduleEntry[]
+
+  @@map("periods")
+}
+
+// الجدول الدراسي - Schedule Entries
+model ScheduleEntry {
+  id        String   @id @default(uuid())
+  day       String   // اليوم: sunday, monday, tuesday, wednesday, thursday
+  subject   String   // المادة (can override teacher's default subject)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Foreign Keys
+  teacherId String
+  gradeId   String
+  sectionId String
+  periodId  String
+  roomId    String
+
+  // Relations
+  teacher Teacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  grade   Grade   @relation(fields: [gradeId], references: [id], onDelete: Cascade)
+  section Section @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  period  Period  @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  room    Room    @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  // Unique constraints for conflict prevention (قلب النظام)
+  // 1. لا يسمح بمدرس في حصتين بنفس الوقت
+  @@unique([teacherId, day, periodId], name: "teacher_schedule_unique")
+  // 2. لا يسمح باستخدام نفس القاعة بحصتين بنفس الوقت
+  @@unique([roomId, day, periodId], name: "room_schedule_unique")
+  // 3. لا يسمح لنفس الشعبة بأكثر من درس بنفس الحصة
+  @@unique([sectionId, day, periodId], name: "section_schedule_unique")
+
+  // Indexes for better query performance
+  @@index([day])
+  @@index([teacherId])
+  @@index([sectionId])
+  @@index([roomId])
+  @@index([periodId])
+  @@map("schedule_entries")
+}
