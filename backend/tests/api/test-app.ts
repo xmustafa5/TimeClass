@@ -1,0 +1,25 @@
+import Fastify from 'fastify';
+import cors from '@fastify/cors';
+import sensible from '@fastify/sensible';
+import { teachersRoutes } from '../../src/routes/teachers.js';
+import { gradesRoutes } from '../../src/routes/grades.js';
+import { sectionsRoutes } from '../../src/routes/sections.js';
+import { roomsRoutes } from '../../src/routes/rooms.js';
+import { periodsRoutes } from '../../src/routes/periods.js';
+
+export async function buildTestApp() {
+  const app = Fastify({
+    logger: false,
+  });
+
+  await app.register(cors);
+  await app.register(sensible);
+
+  await app.register(teachersRoutes, { prefix: '/api/teachers' });
+  await app.register(gradesRoutes, { prefix: '/api/grades' });
+  await app.register(sectionsRoutes, { prefix: '/api/sections' });
+  await app.register(roomsRoutes, { prefix: '/api/rooms' });
+  await app.register(periodsRoutes, { prefix: '/api/periods' });
+
+  return app;
+}
