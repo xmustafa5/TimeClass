@@ -1,207 +1,196 @@
 'use client';
 
-import { useState } from 'react';
-import { weekDaysArabic, WeekDay } from '@/types';
-
-interface Teacher {
-  id: string;
-  fullName: string;
-  subject: string;
-  weeklyPeriods: number;
-  workDays: WeekDay[];
-  notes?: string;
-}
-
-const weekDays: WeekDay[] = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday'];
+import { useState, useMemo } from 'react';
+import { Plus, Search, Users } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { TeacherFormDialog } from '@/components/teachers/TeacherFormDialog';
+import { TeachersTable } from '@/components/teachers/TeachersTable';
+import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
+import { EmptyState } from '@/components/shared/EmptyState';
+import { TableSkeleton } from '@/components/shared/PageSkeleton';
+import {
+  useTeachers,
+  useCreateTeacher,
+  useUpdateTeacher,
+  useDeleteTeacher,
+} from '@/hooks/use-teachers';
+import type { Teacher } from '@/types';
+import type { TeacherFormData } from '@/lib/validations';
 
 export default function TeachersPage() {
-  const [teachers, setTeachers] = useState<Teacher[]>([]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState({
-    fullName: '',
-    subject: '',
-    weeklyPeriods: 20,
-    workDays: [] as WeekDay[],
-    notes: '',
-  });
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [selectedTeacher, setSelectedTeacher] = useState<Teacher | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const newTeacher: Teacher = {
-      id: crypto.randomUUID(),
-      ...formData,
-    };
-    setTeachers([...teachers, newTeacher]);
-    setFormData({ fullName: '', subject: '', weeklyPeriods: 20, workDays: [], notes: '' });
-    setIsModalOpen(false);
+  // Data fetching
+  const { data: teachers = [], isLoading, error } = useTeachers();
+
+  // Mutations
+  const createTeacher = useCreateTeacher();
+  const updateTeacher = useUpdateTeacher();
+  const deleteTeacher = useDeleteTeacher();
+
+  // Filter teachers based on search
+  const filteredTeachers = useMemo(() => {
+    if (!searchQuery.trim()) return teachers;
+    const query = searchQuery.toLowerCase();
+    return teachers.filter(
+      (t) =>
+        t.fullName.toLowerCase().includes(query) ||
+        t.subject.toLowerCase().includes(query)
+    );
+  }, [teachers, searchQuery]);
+
+  // Handlers
+  const handleAdd = () => {
+    setSelectedTeacher(null);
+    setIsFormOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    setTeachers(teachers.filter(t => t.id !== id));
+  const handleEdit = (teacher: Teacher) => {
+    setSelectedTeacher(teacher);
+    setIsFormOpen(true);
   };
 
-  const toggleWorkDay = (day: WeekDay) => {
-    setFormData(prev => ({
-      ...prev,
-      workDays: prev.workDays.includes(day)
-        ? prev.workDays.filter(d => d !== day)
-        : [...prev.workDays, day],
-    }));
+  const handleDelete = (teacher: Teacher) => {
+    setSelectedTeacher(teacher);
+    setIsDeleteOpen(true);
   };
+
+  const handleFormSubmit = (data: TeacherFormData) => {
+    if (selectedTeacher) {
+      updateTeacher.mutate(
+        { id: selectedTeacher.id, data },
+        {
+          onSuccess: () => setIsFormOpen(false),
+        }
+      );
+    } else {
+      createTeacher.mutate(data, {
+        onSuccess: () => setIsFormOpen(false),
+      });
+    }
+  };
+
+  const handleConfirmDelete = () => {
+    if (selectedTeacher) {
+      deleteTeacher.mutate(selectedTeacher.id, {
+        onSuccess: () => {
+          setIsDeleteOpen(false);
+          setSelectedTeacher(null);
+        },
+      });
+    }
+  };
+
+  const isSubmitting = createTeacher.isPending || updateTeacher.isPending;
+
+  if (error) {
+    return (
+      <div className="p-8 text-center text-destructive">
+        حدث خطأ أثناء تحميل البيانات
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">المدرسون</h1>
-          <p className="text-gray-600 mt-1">إدارة قائمة المدرسين</p>
+          <h1 className="text-3xl font-bold">المدرسون</h1>
+          <p className="text-muted-foreground mt-1">
+            إدارة قائمة المدرسين والمواد التي يدرسونها
+          </p>
         </div>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          + إضافة مدرس
-        </button>
+        <Button onClick={handleAdd} className="gap-2 self-start">
+          <Plus className="h-4 w-4" />
+          إضافة مدرس
+        </Button>
       </div>
 
-      {/* Teachers Table */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        {teachers.length === 0 ? (
-          <div className="p-12 text-center text-gray-500">
-            <p className="text-lg">لا يوجد مدرسون حالياً</p>
-            <p className="text-sm mt-2">اضغط على "إضافة مدرس" لإضافة مدرس جديد</p>
-          </div>
-        ) : (
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th className="px-6 py-3 text-right text-sm font-medium text-gray-500">الاسم</th>
-                <th className="px-6 py-3 text-right text-sm font-medium text-gray-500">المادة</th>
-                <th className="px-6 py-3 text-right text-sm font-medium text-gray-500">الحصص الأسبوعية</th>
-                <th className="px-6 py-3 text-right text-sm font-medium text-gray-500">أيام الدوام</th>
-                <th className="px-6 py-3 text-right text-sm font-medium text-gray-500">إجراءات</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {teachers.map((teacher) => (
-                <tr key={teacher.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 text-sm text-gray-900">{teacher.fullName}</td>
-                  <td className="px-6 py-4 text-sm text-gray-600">{teacher.subject}</td>
-                  <td className="px-6 py-4 text-sm text-gray-600">{teacher.weeklyPeriods}</td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
-                    {teacher.workDays.map(d => weekDaysArabic[d]).join('، ')}
-                  </td>
-                  <td className="px-6 py-4 text-sm">
-                    <button
-                      onClick={() => handleDelete(teacher.id)}
-                      className="text-red-600 hover:text-red-800"
-                    >
-                      حذف
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+      {/* Stats Card */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle className="text-sm font-medium">إجمالي المدرسين</CardTitle>
+          <Users className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">{teachers.length}</div>
+        </CardContent>
+      </Card>
+
+      {/* Search */}
+      <div className="relative max-w-sm">
+        <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="البحث بالاسم أو المادة..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pr-10"
+        />
       </div>
 
-      {/* Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4">إضافة مدرس جديد</h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  الاسم الكامل
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formData.fullName}
-                  onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  المادة
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formData.subject}
-                  onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  عدد الحصص الأسبوعية
-                </label>
-                <input
-                  type="number"
-                  required
-                  min={1}
-                  max={35}
-                  value={formData.weeklyPeriods}
-                  onChange={(e) => setFormData({ ...formData, weeklyPeriods: parseInt(e.target.value) })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  أيام الدوام
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {weekDays.map((day) => (
-                    <button
-                      key={day}
-                      type="button"
-                      onClick={() => toggleWorkDay(day)}
-                      className={`px-3 py-1 rounded-full text-sm ${
-                        formData.workDays.includes(day)
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
-                    >
-                      {weekDaysArabic[day]}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  ملاحظات
-                </label>
-                <textarea
-                  value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  rows={3}
-                />
-              </div>
-              <div className="flex gap-3 pt-4">
-                <button
-                  type="submit"
-                  className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700"
-                >
-                  إضافة
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="flex-1 bg-gray-100 text-gray-700 py-2 rounded-lg hover:bg-gray-200"
-                >
-                  إلغاء
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+      {/* Table */}
+      {isLoading ? (
+        <Card>
+          <CardContent className="p-6">
+            <TableSkeleton rows={5} />
+          </CardContent>
+        </Card>
+      ) : filteredTeachers.length === 0 ? (
+        <Card>
+          <CardContent className="p-6">
+            {searchQuery ? (
+              <EmptyState
+                icon={Search}
+                title="لا توجد نتائج"
+                description="لم يتم العثور على مدرسين تطابق بحثك"
+              />
+            ) : (
+              <EmptyState
+                icon={Users}
+                title="لا يوجد مدرسون"
+                description="لم يتم إضافة أي مدرسين بعد. اضغط على زر الإضافة للبدء."
+                action={{
+                  label: 'إضافة مدرس',
+                  onClick: handleAdd,
+                }}
+              />
+            )}
+          </CardContent>
+        </Card>
+      ) : (
+        <TeachersTable
+          teachers={filteredTeachers}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+        />
       )}
+
+      {/* Form Dialog */}
+      <TeacherFormDialog
+        open={isFormOpen}
+        onOpenChange={setIsFormOpen}
+        onSubmit={handleFormSubmit}
+        teacher={selectedTeacher}
+        isLoading={isSubmitting}
+      />
+
+      {/* Delete Confirmation */}
+      <ConfirmDialog
+        open={isDeleteOpen}
+        onOpenChange={setIsDeleteOpen}
+        title="حذف المدرس"
+        description={`هل أنت متأكد من حذف المدرس "${selectedTeacher?.fullName}"؟ لا يمكن التراجع عن هذا الإجراء.`}
+        confirmLabel="حذف"
+        onConfirm={handleConfirmDelete}
+        variant="destructive"
+        loading={deleteTeacher.isPending}
+      />
     </div>
   );
 }
