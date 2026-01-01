@@ -1,93 +1,301 @@
 import { FastifyInstance, FastifyPluginAsync } from 'fastify';
-import { Room, RoomType, ApiResponse } from '../types/index.js';
+import { prisma } from '../lib/prisma.js';
+import {
+  createRoomSchema,
+  updateRoomSchema,
+  paginationSchema,
+  formatZodError,
+  roomTypes,
+} from '../lib/validations.js';
+import { ApiResponse } from '../types/index.js';
+import type { Room } from '../generated/prisma/client.js';
 
-// In-memory storage (replace with database later)
-const rooms: Map<string, Room> = new Map();
+interface RoomsListResponse {
+  rooms: Room[];
+  total: number;
+  page: number;
+  limit: number;
+}
 
 export const roomsRoutes: FastifyPluginAsync = async (fastify: FastifyInstance) => {
-  // Get all rooms
-  fastify.get('/', async (): Promise<ApiResponse<Room[]>> => {
-    return {
-      success: true,
-      data: Array.from(rooms.values()),
-    };
-  });
+  // Get all rooms with pagination
+  fastify.get<{ Querystring: { page?: string; limit?: string; type?: string } }>(
+    '/',
+    {
+      schema: {
+        tags: ['rooms'],
+        summary: 'Get all rooms',
+        description: 'Retrieve all rooms with pagination and optional filtering',
+        querystring: {
+          type: 'object',
+          properties: {
+            page: { type: 'string', description: 'Page number' },
+            limit: { type: 'string', description: 'Items per page' },
+            type: { type: 'string', enum: [...roomTypes], description: 'Filter by room type' },
+          },
+        },
+      },
+    },
+    async (request, reply): Promise<ApiResponse<RoomsListResponse>> => {
+      try {
+        const queryResult = paginationSchema.safeParse(request.query);
+        const { page, limit } = queryResult.success ? queryResult.data : { page: 1, limit: 20 };
+        const skip = (page - 1) * limit;
+
+        const where = request.query.type ? { type: request.query.type } : {};
+
+        const [rooms, total] = await Promise.all([
+          prisma.room.findMany({
+            where,
+            skip,
+            take: limit,
+            orderBy: { name: 'asc' },
+          }),
+          prisma.room.count({ where }),
+        ]);
+
+        return {
+          success: true,
+          data: { rooms, total, page, limit },
+        };
+      } catch (error) {
+        reply.status(500);
+        return { success: false, error: 'فشل في جلب القاعات' };
+      }
+    }
+  );
 
   // Get rooms by type
-  fastify.get<{ Params: { type: RoomType } }>('/by-type/:type', async (request): Promise<ApiResponse<Room[]>> => {
-    const { type } = request.params;
-    const filteredRooms = Array.from(rooms.values()).filter(r => r.type === type);
+  fastify.get<{ Params: { type: string } }>(
+    '/by-type/:type',
+    {
+      schema: {
+        tags: ['rooms'],
+        summary: 'Get rooms by type',
+        description: 'Retrieve all rooms of a specific type',
+        params: {
+          type: 'object',
+          properties: {
+            type: { type: 'string', enum: [...roomTypes] },
+          },
+          required: ['type'],
+        },
+      },
+    },
+    async (request, reply): Promise<ApiResponse<Room[]>> => {
+      try {
+        const { type } = request.params;
 
-    return { success: true, data: filteredRooms };
-  });
+        if (!roomTypes.includes(type as typeof roomTypes[number])) {
+          reply.status(400);
+          return { success: false, error: 'نوع القاعة غير صالح' };
+        }
+
+        const rooms = await prisma.room.findMany({
+          where: { type },
+          orderBy: { name: 'asc' },
+        });
+
+        return { success: true, data: rooms };
+      } catch (error) {
+        reply.status(500);
+        return { success: false, error: 'فشل في جلب القاعات' };
+      }
+    }
+  );
 
   // Get room by ID
-  fastify.get<{ Params: { id: string } }>('/:id', async (request, reply): Promise<ApiResponse<Room>> => {
-    const { id } = request.params;
-    const room = rooms.get(id);
+  fastify.get<{ Params: { id: string } }>(
+    '/:id',
+    {
+      schema: {
+        tags: ['rooms'],
+        summary: 'Get room by ID',
+        description: 'Retrieve a single room by ID',
+        params: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', format: 'uuid' },
+          },
+          required: ['id'],
+        },
+      },
+    },
+    async (request, reply): Promise<ApiResponse<Room>> => {
+      try {
+        const { id } = request.params;
 
-    if (!room) {
-      reply.status(404);
-      return { success: false, error: 'Room not found' };
+        const room = await prisma.room.findUnique({
+          where: { id },
+          include: {
+            scheduleEntries: {
+              include: {
+                teacher: true,
+                period: true,
+                section: true,
+                grade: true,
+              },
+            },
+          },
+        });
+
+        if (!room) {
+          reply.status(404);
+          return { success: false, error: 'القاعة غير موجودة' };
+        }
+
+        return { success: true, data: room };
+      } catch (error) {
+        reply.status(500);
+        return { success: false, error: 'فشل في جلب القاعة' };
+      }
     }
-
-    return { success: true, data: room };
-  });
+  );
 
   // Create room
-  fastify.post<{ Body: { name: string; capacity: number; type: RoomType } }>('/', async (request): Promise<ApiResponse<Room>> => {
-    const id = crypto.randomUUID();
-    const now = new Date();
+  fastify.post(
+    '/',
+    {
+      schema: {
+        tags: ['rooms'],
+        summary: 'Create a new room',
+        description: 'Create a new room with the provided details',
+        body: {
+          type: 'object',
+          required: ['name'],
+          properties: {
+            name: { type: 'string', minLength: 1 },
+            capacity: { type: 'number', minimum: 1, default: 30 },
+            type: { type: 'string', enum: [...roomTypes], default: 'regular' },
+          },
+        },
+      },
+    },
+    async (request, reply): Promise<ApiResponse<Room>> => {
+      try {
+        const result = createRoomSchema.safeParse(request.body);
 
-    const room: Room = {
-      id,
-      name: request.body.name,
-      capacity: request.body.capacity,
-      type: request.body.type,
-      createdAt: now,
-      updatedAt: now,
-    };
+        if (!result.success) {
+          reply.status(400);
+          return { success: false, error: formatZodError(result.error) };
+        }
 
-    rooms.set(id, room);
+        // Check if room name already exists
+        const existing = await prisma.room.findUnique({
+          where: { name: result.data.name },
+        });
 
-    return { success: true, data: room, message: 'Room created successfully' };
-  });
+        if (existing) {
+          reply.status(409);
+          return { success: false, error: 'اسم القاعة موجود مسبقاً' };
+        }
+
+        const room = await prisma.room.create({
+          data: result.data,
+        });
+
+        reply.status(201);
+        return { success: true, data: room, message: 'تم إنشاء القاعة بنجاح' };
+      } catch (error) {
+        reply.status(500);
+        return { success: false, error: 'فشل في إنشاء القاعة' };
+      }
+    }
+  );
 
   // Update room
-  fastify.put<{ Params: { id: string }; Body: { name?: string; capacity?: number; type?: RoomType } }>(
+  fastify.put<{ Params: { id: string } }>(
     '/:id',
+    {
+      schema: {
+        tags: ['rooms'],
+        summary: 'Update a room',
+        description: 'Update an existing room by ID',
+        params: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', format: 'uuid' },
+          },
+          required: ['id'],
+        },
+      },
+    },
     async (request, reply): Promise<ApiResponse<Room>> => {
-      const { id } = request.params;
-      const existing = rooms.get(id);
+      try {
+        const { id } = request.params;
+        const result = updateRoomSchema.safeParse(request.body);
 
-      if (!existing) {
-        reply.status(404);
-        return { success: false, error: 'Room not found' };
+        if (!result.success) {
+          reply.status(400);
+          return { success: false, error: formatZodError(result.error) };
+        }
+
+        // Check if room exists
+        const existing = await prisma.room.findUnique({ where: { id } });
+        if (!existing) {
+          reply.status(404);
+          return { success: false, error: 'القاعة غير موجودة' };
+        }
+
+        // Check if new name conflicts with another room
+        if (result.data.name && result.data.name !== existing.name) {
+          const nameConflict = await prisma.room.findUnique({
+            where: { name: result.data.name },
+          });
+          if (nameConflict) {
+            reply.status(409);
+            return { success: false, error: 'اسم القاعة موجود مسبقاً' };
+          }
+        }
+
+        const room = await prisma.room.update({
+          where: { id },
+          data: result.data,
+        });
+
+        return { success: true, data: room, message: 'تم تحديث القاعة بنجاح' };
+      } catch (error) {
+        reply.status(500);
+        return { success: false, error: 'فشل في تحديث القاعة' };
       }
-
-      const updated: Room = {
-        ...existing,
-        ...request.body,
-        updatedAt: new Date(),
-      };
-
-      rooms.set(id, updated);
-
-      return { success: true, data: updated, message: 'Room updated successfully' };
     }
   );
 
   // Delete room
-  fastify.delete<{ Params: { id: string } }>('/:id', async (request, reply): Promise<ApiResponse<null>> => {
-    const { id } = request.params;
+  fastify.delete<{ Params: { id: string } }>(
+    '/:id',
+    {
+      schema: {
+        tags: ['rooms'],
+        summary: 'Delete a room',
+        description: 'Delete an existing room by ID',
+        params: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', format: 'uuid' },
+          },
+          required: ['id'],
+        },
+      },
+    },
+    async (request, reply): Promise<ApiResponse<null>> => {
+      try {
+        const { id } = request.params;
 
-    if (!rooms.has(id)) {
-      reply.status(404);
-      return { success: false, error: 'Room not found' };
+        // Check if room exists
+        const existing = await prisma.room.findUnique({ where: { id } });
+        if (!existing) {
+          reply.status(404);
+          return { success: false, error: 'القاعة غير موجودة' };
+        }
+
+        await prisma.room.delete({ where: { id } });
+
+        return { success: true, message: 'تم حذف القاعة بنجاح' };
+      } catch (error) {
+        reply.status(500);
+        return { success: false, error: 'فشل في حذف القاعة' };
+      }
     }
-
-    rooms.delete(id);
-
-    return { success: true, message: 'Room deleted successfully' };
-  });
+  );
 };

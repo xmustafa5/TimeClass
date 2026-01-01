@@ -1,6 +1,4 @@
 import { beforeAll, afterAll, beforeEach } from 'vitest';
-import { PrismaClient } from '../src/generated/prisma/client.js';
-import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
@@ -11,7 +9,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DEV_DB_PATH = path.join(__dirname, '..', 'dev.db');
 const TEST_DB_PATH = path.join(__dirname, '..', 'test.db');
 
-// Clean up and copy database
+// Clean up and copy database BEFORE any prisma imports
 if (fs.existsSync(TEST_DB_PATH)) {
   fs.unlinkSync(TEST_DB_PATH);
 }
@@ -21,11 +19,15 @@ if (fs.existsSync(DEV_DB_PATH)) {
   fs.copyFileSync(DEV_DB_PATH, TEST_DB_PATH);
 }
 
-const adapter = new PrismaBetterSqlite3({
-  url: `file:${TEST_DB_PATH}`,
-});
+// Override DATABASE_URL to point to test database BEFORE importing prisma
+process.env.DATABASE_URL = `file:${TEST_DB_PATH}`;
 
-export const testPrisma = new PrismaClient({ adapter });
+// Now import the shared prisma client - it will use the test database
+// This must come AFTER setting DATABASE_URL
+const { prisma, disconnectPrisma } = await import('../src/lib/prisma.js');
+
+// Export for test files to use
+export const testPrisma = prisma;
 
 // Clean up tables before each test
 beforeEach(async () => {
@@ -39,7 +41,7 @@ beforeEach(async () => {
 });
 
 afterAll(async () => {
-  await testPrisma.$disconnect();
+  await disconnectPrisma();
 
   // Clean up test database file with retry for EBUSY errors
   const cleanupTestDb = (retries = 3) => {
