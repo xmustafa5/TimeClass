@@ -91,7 +91,7 @@
 - [x] Configure staleTime and gcTime for caching
 - [x] Create loading state management
 - [x] Set up error state handling
-- [ ] Use React Context for UI-only state (modals, filters)
+- [x] Use React Context for UI-only state (modals, filters) - useModal hook created
 
 **Deliverables:**
 - TanStack Query setup
@@ -134,8 +134,8 @@
 - [x] Create useSchedule hook
 - [x] Create useConflictCheck hook
 - [x] Create useToast hook (using sonner)
-- [ ] Create useModal hook
-- [ ] Create useLocalStorage hook
+- [x] Create useModal hook
+- [x] Create useLocalStorage hook
 
 **Deliverables:**
 - Custom hooks library

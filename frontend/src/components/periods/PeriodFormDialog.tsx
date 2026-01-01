@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
@@ -19,26 +19,47 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { periodSchema, PeriodFormData } from '@/lib/validations';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { periodSchema, PeriodFormData, validatePeriodNoOverlap } from '@/lib/validations';
 import { Period } from '@/types';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertTriangle } from 'lucide-react';
 
 interface PeriodFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (data: PeriodFormData) => void;
   period?: Period | null;
+  existingPeriods?: Period[];
   isLoading?: boolean;
 }
+
+const periodNames = [
+  'الأولى',
+  'الثانية',
+  'الثالثة',
+  'الرابعة',
+  'الخامسة',
+  'السادسة',
+  'السابعة',
+  'الثامنة',
+  'التاسعة',
+  'العاشرة',
+];
+
+const getPeriodName = (number: number) => {
+  return periodNames[number - 1] || `الحصة ${number}`;
+};
 
 export function PeriodFormDialog({
   open,
   onOpenChange,
   onSubmit,
   period,
+  existingPeriods = [],
   isLoading = false,
 }: PeriodFormDialogProps) {
   const isEditing = !!period;
+  const [overlapError, setOverlapError] = useState<string | null>(null);
 
   const form = useForm<PeriodFormData>({
     resolver: zodResolver(periodSchema),
@@ -51,6 +72,7 @@ export function PeriodFormDialog({
 
   useEffect(() => {
     if (open) {
+      setOverlapError(null);
       if (period) {
         form.reset({
           number: period.number,
@@ -67,7 +89,47 @@ export function PeriodFormDialog({
     }
   }, [open, period, form]);
 
+  // Watch form values for real-time overlap checking
+  const startTime = form.watch('startTime');
+  const endTime = form.watch('endTime');
+
+  useEffect(() => {
+    if (startTime && endTime && existingPeriods.length > 0) {
+      const validation = validatePeriodNoOverlap(
+        { startTime, endTime },
+        existingPeriods,
+        period?.id
+      );
+
+      if (!validation.isValid && validation.conflictingPeriod) {
+        const conflicting = validation.conflictingPeriod;
+        setOverlapError(
+          `يتعارض مع الحصة ${getPeriodName(conflicting.number)} (${conflicting.startTime} - ${conflicting.endTime})`
+        );
+      } else {
+        setOverlapError(null);
+      }
+    } else {
+      setOverlapError(null);
+    }
+  }, [startTime, endTime, existingPeriods, period?.id]);
+
   const handleSubmit = (data: PeriodFormData) => {
+    // Final overlap check before submit
+    const validation = validatePeriodNoOverlap(
+      { startTime: data.startTime, endTime: data.endTime },
+      existingPeriods,
+      period?.id
+    );
+
+    if (!validation.isValid) {
+      const conflicting = validation.conflictingPeriod!;
+      setOverlapError(
+        `يتعارض مع الحصة ${getPeriodName(conflicting.number)} (${conflicting.startTime} - ${conflicting.endTime})`
+      );
+      return;
+    }
+
     onSubmit(data);
   };
 
@@ -132,8 +194,20 @@ export function PeriodFormDialog({
               />
             </div>
 
+            {/* Overlap Warning */}
+            {overlapError && (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>{overlapError}</AlertDescription>
+              </Alert>
+            )}
+
             <div className="flex gap-3 pt-4">
-              <Button type="submit" className="flex-1" disabled={isLoading}>
+              <Button
+                type="submit"
+                className="flex-1"
+                disabled={isLoading || !!overlapError}
+              >
                 {isLoading && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
                 {isEditing ? 'حفظ التعديلات' : 'إضافة'}
               </Button>

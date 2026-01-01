@@ -58,6 +58,11 @@ export default function GradesPage() {
     setIsDeleteOpen(true);
   };
 
+  // Get section count for cascade delete warning
+  const getGradeSectionCount = (gradeId: string) => {
+    return sections.filter((s) => s.gradeId === gradeId).length;
+  };
+
   const handleViewSections = (grade: Grade) => {
     router.push(`/sections?gradeId=${grade.id}`);
   };
@@ -190,12 +195,18 @@ export default function GradesPage() {
         isLoading={isSubmitting}
       />
 
-      {/* Delete Confirmation */}
+      {/* Delete Confirmation with Cascade Warning */}
       <ConfirmDialog
         open={isDeleteOpen}
         onOpenChange={setIsDeleteOpen}
         title="حذف الصف"
-        description={`هل أنت متأكد من حذف "${selectedGrade?.name}"؟ سيتم حذف جميع الشعب التابعة لهذا الصف.`}
+        description={
+          selectedGrade
+            ? getGradeSectionCount(selectedGrade.id) > 0
+              ? `هل أنت متأكد من حذف "${selectedGrade.name}"؟ سيتم حذف ${getGradeSectionCount(selectedGrade.id)} شعبة تابعة لهذا الصف. لا يمكن التراجع عن هذا الإجراء.`
+              : `هل أنت متأكد من حذف "${selectedGrade.name}"؟ لا يمكن التراجع عن هذا الإجراء.`
+            : ''
+        }
         confirmLabel="حذف"
         onConfirm={handleConfirmDelete}
         variant="destructive"

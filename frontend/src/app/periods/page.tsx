@@ -264,6 +264,7 @@ export default function PeriodsPage() {
         onOpenChange={setIsFormOpen}
         onSubmit={handleFormSubmit}
         period={selectedPeriod}
+        existingPeriods={periods}
         isLoading={isSubmitting}
       />
 

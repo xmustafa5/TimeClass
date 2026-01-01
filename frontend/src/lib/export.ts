@@ -4,7 +4,7 @@ import { weekDaysArabic } from '@/types';
 /**
  * Export data to CSV file
  */
-export function exportToCSV<T extends Record<string, unknown>>(
+export function exportToCSV<T>(
   data: T[],
   columns: { key: keyof T; header: string; format?: (value: unknown) => string }[],
   filename: string
@@ -18,7 +18,7 @@ export function exportToCSV<T extends Record<string, unknown>>(
   const rows = data.map((item) =>
     columns
       .map((col) => {
-        const value = item[col.key];
+        const value = item[col.key] as unknown;
         const formatted = col.format ? col.format(value) : String(value ?? '');
         // Escape quotes and wrap in quotes if contains comma or newline
         const escaped = formatted.replace(/"/g, '""');

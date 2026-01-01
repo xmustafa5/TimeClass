@@ -106,3 +106,60 @@ export const scheduleEntrySchema = z.object({
 });
 
 export type ScheduleEntryFormData = z.infer<typeof scheduleEntrySchema>;
+
+// Utility functions for time overlap checking
+export function timeToMinutes(time: string): number {
+  const [hours, minutes] = time.split(':').map(Number);
+  return hours * 60 + minutes;
+}
+
+export function checkPeriodsOverlap(
+  newStart: string,
+  newEnd: string,
+  existingStart: string,
+  existingEnd: string
+): boolean {
+  const newStartMin = timeToMinutes(newStart);
+  const newEndMin = timeToMinutes(newEnd);
+  const existingStartMin = timeToMinutes(existingStart);
+  const existingEndMin = timeToMinutes(existingEnd);
+
+  // Check if there's any overlap
+  return newStartMin < existingEndMin && newEndMin > existingStartMin;
+}
+
+export interface Period {
+  id: string;
+  number: number;
+  startTime: string;
+  endTime: string;
+}
+
+/**
+ * Check if a new period overlaps with any existing periods
+ * @param newPeriod - The new period to check
+ * @param existingPeriods - Array of existing periods
+ * @param excludeId - ID of period to exclude (for edit mode)
+ * @returns Object with overlap status and conflicting period
+ */
+export function validatePeriodNoOverlap(
+  newPeriod: { startTime: string; endTime: string },
+  existingPeriods: Period[],
+  excludeId?: string
+): { isValid: boolean; conflictingPeriod?: Period } {
+  for (const existing of existingPeriods) {
+    // Skip the period being edited
+    if (excludeId && existing.id === excludeId) continue;
+
+    if (checkPeriodsOverlap(
+      newPeriod.startTime,
+      newPeriod.endTime,
+      existing.startTime,
+      existing.endTime
+    )) {
+      return { isValid: false, conflictingPeriod: existing };
+    }
+  }
+
+  return { isValid: true };
+}
