@@ -118,16 +118,16 @@ BEFORE STARTING THIS PHASE:
 - Support filtering and pagination
 
 **Tasks:**
-- [ ] Create Teacher type definitions
-- [ ] Implement GET /api/teachers (list all)
-- [ ] Implement GET /api/teachers/:id (get one)
-- [ ] Implement POST /api/teachers (create)
-- [ ] Implement PUT /api/teachers/:id (update)
-- [ ] Implement DELETE /api/teachers/:id (delete)
-- [ ] Add input validation (Zod/JSON Schema)
-- [ ] Add pagination support
-- [ ] Add filtering by subject, workDays
-- [ ] Write unit tests
+- [x] Create Teacher type definitions
+- [x] Implement GET /api/teachers (list all)
+- [x] Implement GET /api/teachers/:id (get one)
+- [x] Implement POST /api/teachers (create)
+- [x] Implement PUT /api/teachers/:id (update)
+- [x] Implement DELETE /api/teachers/:id (delete)
+- [x] Add input validation (Zod/JSON Schema)
+- [x] Add pagination support
+- [x] Add filtering by subject, workDays
+- [x] Write unit tests
 
 **Recommended Packages:**
 | Package | Purpose | Context7 Lookup |
@@ -148,14 +148,14 @@ BEFORE STARTING THIS PHASE:
 - Handle parent-child relationship (Grade → Sections)
 
 **Tasks:**
-- [ ] Create Grade type definitions
-- [ ] Implement Grades CRUD endpoints
-- [ ] Create Section type definitions
-- [ ] Implement Sections CRUD endpoints
-- [ ] Implement GET /api/sections/by-grade/:gradeId
-- [ ] Add cascade delete handling
-- [ ] Add validation for section-grade relationship
-- [ ] Write unit tests
+- [x] Create Grade type definitions
+- [x] Implement Grades CRUD endpoints
+- [x] Create Section type definitions
+- [x] Implement Sections CRUD endpoints
+- [x] Implement GET /api/sections/by-grade/:gradeId
+- [x] Add cascade delete handling
+- [x] Add validation for section-grade relationship
+- [x] Write unit tests
 
 **Deliverables:**
 - Complete Grades API
@@ -169,12 +169,12 @@ BEFORE STARTING THIS PHASE:
 - Support room type categorization
 
 **Tasks:**
-- [ ] Create Room type definitions
-- [ ] Implement Rooms CRUD endpoints
-- [ ] Implement GET /api/rooms/by-type/:type
-- [ ] Add room capacity validation
-- [ ] Add room type enum validation
-- [ ] Write unit tests
+- [x] Create Room type definitions
+- [x] Implement Rooms CRUD endpoints
+- [x] Implement GET /api/rooms/by-type/:type
+- [x] Add room capacity validation
+- [x] Add room type enum validation
+- [x] Write unit tests
 
 **Deliverables:**
 - Complete Rooms API
@@ -187,12 +187,12 @@ BEFORE STARTING THIS PHASE:
 - Handle time validation
 
 **Tasks:**
-- [ ] Create Period type definitions
-- [ ] Implement Periods CRUD endpoints
-- [ ] Add time format validation
-- [ ] Add period number uniqueness check
-- [ ] Ensure periods don't overlap in time
-- [ ] Write unit tests
+- [x] Create Period type definitions
+- [x] Implement Periods CRUD endpoints
+- [x] Add time format validation
+- [x] Add period number uniqueness check
+- [x] Ensure periods don't overlap in time
+- [x] Write unit tests
 
 **Deliverables:**
 - Complete Periods API

@@ -97,6 +97,26 @@ export const updateScheduleEntrySchema = createScheduleEntrySchema.partial();
 export type CreateScheduleEntryInput = z.infer<typeof createScheduleEntrySchema>;
 export type UpdateScheduleEntryInput = z.infer<typeof updateScheduleEntrySchema>;
 
+// ============ Conflict Check Schema ============
+export const checkConflictSchema = z.object({
+  teacherId: z.string().uuid('معرف المدرس غير صالح'),
+  sectionId: z.string().uuid('معرف الشعبة غير صالح'),
+  periodId: z.string().uuid('معرف الحصة غير صالح'),
+  roomId: z.string().uuid('معرف القاعة غير صالح'),
+  day: weekDaySchema,
+  excludeEntryId: z.string().uuid().optional(), // For update operations
+});
+
+export type CheckConflictInput = z.infer<typeof checkConflictSchema>;
+
+// ============ Bulk Schedule Entry Schema ============
+export const bulkScheduleEntrySchema = z.object({
+  entries: z.array(createScheduleEntrySchema).min(1, 'يجب إدخال حصة واحدة على الأقل'),
+  skipConflicts: z.boolean().default(false), // If true, skip conflicting entries instead of failing
+});
+
+export type BulkScheduleEntryInput = z.infer<typeof bulkScheduleEntrySchema>;
+
 // ============ Pagination Schema ============
 export const paginationSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
