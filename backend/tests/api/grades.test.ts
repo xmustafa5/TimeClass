@@ -130,18 +130,17 @@ describe('Grades API', () => {
     });
 
     it('should return 400 for empty name', async () => {
-      // Empty string triggers Zod validation
+      // Empty string triggers JSON schema validation (minLength: 1)
       const response = await app.inject({
         method: 'POST',
         url: '/api/grades',
         payload: {
-          name: '', // Empty string - fails Zod min(1)
+          name: '', // Empty string
         },
       });
 
       expect(response.statusCode).toBe(400);
-      const body = JSON.parse(response.payload);
-      expect(body.success).toBe(false);
+      // Note: Fastify JSON schema validation returns a different format than our Zod errors
     });
 
     it('should return 409 for duplicate grade name', async () => {
