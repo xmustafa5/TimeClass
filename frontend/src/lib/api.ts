@@ -1,4 +1,28 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
+import type {
+  Teacher,
+  Grade,
+  Section,
+  Room,
+  Period,
+  ScheduleEntry,
+  ApiResponse,
+  RoomType,
+  WeekDay,
+} from '@/types';
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+
+// Custom error class for API errors
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public status: number,
+    public code?: string
+  ) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
 
 interface FetchOptions extends RequestInit {
   data?: unknown;
@@ -22,70 +46,200 @@ async function fetchApi<T>(endpoint: string, options: FetchOptions = {}): Promis
   const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Something went wrong');
+    let errorMessage = 'حدث خطأ غير متوقع';
+    let errorCode: string | undefined;
+
+    try {
+      const error = await response.json();
+      errorMessage = error.error || error.message || errorMessage;
+      errorCode = error.code;
+    } catch {
+      // If response isn't JSON, use status text
+      errorMessage = response.statusText || errorMessage;
+    }
+
+    throw new ApiError(errorMessage, response.status, errorCode);
   }
 
   return response.json();
 }
 
-// Teachers API
+// ==================== Teachers API ====================
+export type CreateTeacherInput = Omit<Teacher, 'id' | 'createdAt' | 'updatedAt'>;
+export type UpdateTeacherInput = Partial<CreateTeacherInput>;
+
 export const teachersApi = {
-  getAll: () => fetchApi<{ success: boolean; data: unknown[] }>('/teachers'),
-  getById: (id: string) => fetchApi<{ success: boolean; data: unknown }>(`/teachers/${id}`),
-  create: (data: unknown) => fetchApi('/teachers', { method: 'POST', data }),
-  update: (id: string, data: unknown) => fetchApi(`/teachers/${id}`, { method: 'PUT', data }),
-  delete: (id: string) => fetchApi(`/teachers/${id}`, { method: 'DELETE' }),
+  getAll: () =>
+    fetchApi<ApiResponse<Teacher[]>>('/teachers'),
+
+  getById: (id: string) =>
+    fetchApi<ApiResponse<Teacher>>(`/teachers/${id}`),
+
+  create: (data: CreateTeacherInput) =>
+    fetchApi<ApiResponse<Teacher>>('/teachers', { method: 'POST', data }),
+
+  update: (id: string, data: UpdateTeacherInput) =>
+    fetchApi<ApiResponse<Teacher>>(`/teachers/${id}`, { method: 'PUT', data }),
+
+  delete: (id: string) =>
+    fetchApi<ApiResponse<null>>(`/teachers/${id}`, { method: 'DELETE' }),
 };
 
-// Grades API
+// ==================== Grades API ====================
+export type CreateGradeInput = Omit<Grade, 'id' | 'createdAt' | 'updatedAt'>;
+export type UpdateGradeInput = Partial<CreateGradeInput>;
+
 export const gradesApi = {
-  getAll: () => fetchApi<{ success: boolean; data: unknown[] }>('/grades'),
-  getById: (id: string) => fetchApi<{ success: boolean; data: unknown }>(`/grades/${id}`),
-  create: (data: unknown) => fetchApi('/grades', { method: 'POST', data }),
-  update: (id: string, data: unknown) => fetchApi(`/grades/${id}`, { method: 'PUT', data }),
-  delete: (id: string) => fetchApi(`/grades/${id}`, { method: 'DELETE' }),
+  getAll: () =>
+    fetchApi<ApiResponse<Grade[]>>('/grades'),
+
+  getById: (id: string) =>
+    fetchApi<ApiResponse<Grade>>(`/grades/${id}`),
+
+  create: (data: CreateGradeInput) =>
+    fetchApi<ApiResponse<Grade>>('/grades', { method: 'POST', data }),
+
+  update: (id: string, data: UpdateGradeInput) =>
+    fetchApi<ApiResponse<Grade>>(`/grades/${id}`, { method: 'PUT', data }),
+
+  delete: (id: string) =>
+    fetchApi<ApiResponse<null>>(`/grades/${id}`, { method: 'DELETE' }),
 };
 
-// Sections API
+// ==================== Sections API ====================
+export type CreateSectionInput = Omit<Section, 'id' | 'createdAt' | 'updatedAt'>;
+export type UpdateSectionInput = Partial<CreateSectionInput>;
+
 export const sectionsApi = {
-  getAll: () => fetchApi<{ success: boolean; data: unknown[] }>('/sections'),
-  getByGrade: (gradeId: string) => fetchApi<{ success: boolean; data: unknown[] }>(`/sections/by-grade/${gradeId}`),
-  getById: (id: string) => fetchApi<{ success: boolean; data: unknown }>(`/sections/${id}`),
-  create: (data: unknown) => fetchApi('/sections', { method: 'POST', data }),
-  update: (id: string, data: unknown) => fetchApi(`/sections/${id}`, { method: 'PUT', data }),
-  delete: (id: string) => fetchApi(`/sections/${id}`, { method: 'DELETE' }),
+  getAll: () =>
+    fetchApi<ApiResponse<Section[]>>('/sections'),
+
+  getByGrade: (gradeId: string) =>
+    fetchApi<ApiResponse<Section[]>>(`/sections/by-grade/${gradeId}`),
+
+  getById: (id: string) =>
+    fetchApi<ApiResponse<Section>>(`/sections/${id}`),
+
+  create: (data: CreateSectionInput) =>
+    fetchApi<ApiResponse<Section>>('/sections', { method: 'POST', data }),
+
+  update: (id: string, data: UpdateSectionInput) =>
+    fetchApi<ApiResponse<Section>>(`/sections/${id}`, { method: 'PUT', data }),
+
+  delete: (id: string) =>
+    fetchApi<ApiResponse<null>>(`/sections/${id}`, { method: 'DELETE' }),
 };
 
-// Rooms API
+// ==================== Rooms API ====================
+export type CreateRoomInput = Omit<Room, 'id' | 'createdAt' | 'updatedAt'>;
+export type UpdateRoomInput = Partial<CreateRoomInput>;
+
 export const roomsApi = {
-  getAll: () => fetchApi<{ success: boolean; data: unknown[] }>('/rooms'),
-  getByType: (type: string) => fetchApi<{ success: boolean; data: unknown[] }>(`/rooms/by-type/${type}`),
-  getById: (id: string) => fetchApi<{ success: boolean; data: unknown }>(`/rooms/${id}`),
-  create: (data: unknown) => fetchApi('/rooms', { method: 'POST', data }),
-  update: (id: string, data: unknown) => fetchApi(`/rooms/${id}`, { method: 'PUT', data }),
-  delete: (id: string) => fetchApi(`/rooms/${id}`, { method: 'DELETE' }),
+  getAll: () =>
+    fetchApi<ApiResponse<Room[]>>('/rooms'),
+
+  getByType: (type: RoomType) =>
+    fetchApi<ApiResponse<Room[]>>(`/rooms/by-type/${type}`),
+
+  getById: (id: string) =>
+    fetchApi<ApiResponse<Room>>(`/rooms/${id}`),
+
+  create: (data: CreateRoomInput) =>
+    fetchApi<ApiResponse<Room>>('/rooms', { method: 'POST', data }),
+
+  update: (id: string, data: UpdateRoomInput) =>
+    fetchApi<ApiResponse<Room>>(`/rooms/${id}`, { method: 'PUT', data }),
+
+  delete: (id: string) =>
+    fetchApi<ApiResponse<null>>(`/rooms/${id}`, { method: 'DELETE' }),
 };
 
-// Periods API
+// ==================== Periods API ====================
+export type CreatePeriodInput = Omit<Period, 'id' | 'createdAt' | 'updatedAt'>;
+export type UpdatePeriodInput = Partial<CreatePeriodInput>;
+
 export const periodsApi = {
-  getAll: () => fetchApi<{ success: boolean; data: unknown[] }>('/periods'),
-  getById: (id: string) => fetchApi<{ success: boolean; data: unknown }>(`/periods/${id}`),
-  create: (data: unknown) => fetchApi('/periods', { method: 'POST', data }),
-  update: (id: string, data: unknown) => fetchApi(`/periods/${id}`, { method: 'PUT', data }),
-  delete: (id: string) => fetchApi(`/periods/${id}`, { method: 'DELETE' }),
+  getAll: () =>
+    fetchApi<ApiResponse<Period[]>>('/periods'),
+
+  getById: (id: string) =>
+    fetchApi<ApiResponse<Period>>(`/periods/${id}`),
+
+  create: (data: CreatePeriodInput) =>
+    fetchApi<ApiResponse<Period>>('/periods', { method: 'POST', data }),
+
+  update: (id: string, data: UpdatePeriodInput) =>
+    fetchApi<ApiResponse<Period>>(`/periods/${id}`, { method: 'PUT', data }),
+
+  delete: (id: string) =>
+    fetchApi<ApiResponse<null>>(`/periods/${id}`, { method: 'DELETE' }),
 };
 
-// Schedule API
+// ==================== Schedule API ====================
+export type CreateScheduleInput = Omit<ScheduleEntry, 'id' | 'createdAt' | 'updatedAt'>;
+export type UpdateScheduleInput = Partial<CreateScheduleInput>;
+
+export interface ConflictCheckInput {
+  teacherId: string;
+  sectionId: string;
+  roomId: string;
+  periodId: string;
+  day: WeekDay;
+  excludeId?: string; // For updates, exclude current entry
+}
+
+export interface ConflictResult {
+  hasConflict: boolean;
+  conflicts: {
+    type: 'teacher' | 'room' | 'section';
+    message: string;
+    conflictingEntry?: ScheduleEntry;
+  }[];
+}
+
 export const scheduleApi = {
-  getAll: () => fetchApi<{ success: boolean; data: unknown[] }>('/schedule'),
-  getByDay: (day: string) => fetchApi<{ success: boolean; data: unknown[] }>(`/schedule/by-day/${day}`),
-  getByTeacher: (teacherId: string) => fetchApi<{ success: boolean; data: unknown[] }>(`/schedule/by-teacher/${teacherId}`),
-  getBySection: (sectionId: string) => fetchApi<{ success: boolean; data: unknown[] }>(`/schedule/by-section/${sectionId}`),
-  getByRoom: (roomId: string) => fetchApi<{ success: boolean; data: unknown[] }>(`/schedule/by-room/${roomId}`),
-  checkConflicts: (data: unknown) => fetchApi('/schedule/check-conflicts', { method: 'POST', data }),
-  getById: (id: string) => fetchApi<{ success: boolean; data: unknown }>(`/schedule/${id}`),
-  create: (data: unknown) => fetchApi('/schedule', { method: 'POST', data }),
-  update: (id: string, data: unknown) => fetchApi(`/schedule/${id}`, { method: 'PUT', data }),
-  delete: (id: string) => fetchApi(`/schedule/${id}`, { method: 'DELETE' }),
+  getAll: () =>
+    fetchApi<ApiResponse<ScheduleEntry[]>>('/schedule'),
+
+  getByDay: (day: WeekDay) =>
+    fetchApi<ApiResponse<ScheduleEntry[]>>(`/schedule/by-day/${day}`),
+
+  getByTeacher: (teacherId: string) =>
+    fetchApi<ApiResponse<ScheduleEntry[]>>(`/schedule/by-teacher/${teacherId}`),
+
+  getBySection: (sectionId: string) =>
+    fetchApi<ApiResponse<ScheduleEntry[]>>(`/schedule/by-section/${sectionId}`),
+
+  getByRoom: (roomId: string) =>
+    fetchApi<ApiResponse<ScheduleEntry[]>>(`/schedule/by-room/${roomId}`),
+
+  checkConflicts: (data: ConflictCheckInput) =>
+    fetchApi<ApiResponse<ConflictResult>>('/schedule/check-conflicts', { method: 'POST', data }),
+
+  getById: (id: string) =>
+    fetchApi<ApiResponse<ScheduleEntry>>(`/schedule/${id}`),
+
+  create: (data: CreateScheduleInput) =>
+    fetchApi<ApiResponse<ScheduleEntry>>('/schedule', { method: 'POST', data }),
+
+  update: (id: string, data: UpdateScheduleInput) =>
+    fetchApi<ApiResponse<ScheduleEntry>>(`/schedule/${id}`, { method: 'PUT', data }),
+
+  delete: (id: string) =>
+    fetchApi<ApiResponse<null>>(`/schedule/${id}`, { method: 'DELETE' }),
+};
+
+// ==================== Statistics API ====================
+export interface DashboardStats {
+  teachersCount: number;
+  gradesCount: number;
+  sectionsCount: number;
+  roomsCount: number;
+  periodsCount: number;
+  scheduleEntriesCount: number;
+}
+
+export const statsApi = {
+  getDashboard: () =>
+    fetchApi<ApiResponse<DashboardStats>>('/stats/dashboard'),
 };
