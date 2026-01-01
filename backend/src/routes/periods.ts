@@ -61,7 +61,6 @@ export const periodsRoutes: FastifyPluginAsync = async (fastify: FastifyInstance
               include: {
                 teacher: true,
                 section: true,
-                room: true,
                 grade: true,
               },
             },

@@ -36,7 +36,6 @@ beforeEach(async () => {
   await testPrisma.section.deleteMany();
   await testPrisma.grade.deleteMany();
   await testPrisma.teacher.deleteMany();
-  await testPrisma.room.deleteMany();
   await testPrisma.period.deleteMany();
 });
 

@@ -136,7 +136,6 @@ export const sectionsRoutes: FastifyPluginAsync = async (fastify: FastifyInstanc
               include: {
                 teacher: true,
                 period: true,
-                room: true,
               },
             },
           },

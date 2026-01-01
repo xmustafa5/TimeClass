@@ -93,7 +93,6 @@ export const teachersRoutes: FastifyPluginAsync = async (fastify: FastifyInstanc
               include: {
                 period: true,
                 section: true,
-                room: true,
                 grade: true,
               },
             },
