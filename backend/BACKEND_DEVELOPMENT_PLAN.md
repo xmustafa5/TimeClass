@@ -3,7 +3,31 @@
 
 ---
 
+## IMPORTANT: Development Guidelines
+
+> **For Every Phase Implementation:**
+> 1. **Use Context7** - Always query Context7 for up-to-date documentation before implementing any feature
+> 2. **Use Modern Packages** - Leverage ready-made packages and libraries instead of writing code from scratch
+> 3. **Minimize Manual Code** - Use generators, CLI tools, and boilerplate packages whenever possible
+> 4. **Check Latest Versions** - Use Context7 to verify latest package versions and best practices
+
+---
+
 ## PHASE 1: Project Foundation & Core Setup (Week 1)
+
+### Implementation Instructions
+```
+BEFORE STARTING THIS PHASE:
+1. Use Context7 to lookup: Fastify, Prisma, Pino, Zod, dotenv
+2. Use modern packages:
+   - @fastify/env (environment management)
+   - @fastify/sensible (error handling)
+   - pino-pretty (logging)
+   - prisma (ORM with CLI generators)
+   - zod (validation with type inference)
+3. Use Prisma CLI to generate schemas and migrations automatically
+4. Use package generators instead of manual configuration
+```
 
 ### MODULE 1.1: Project Infrastructure
 **Objectives:**
@@ -16,11 +40,23 @@
 - [x] Install and configure Fastify framework
 - [x] Set up TypeScript configuration (tsconfig.json)
 - [x] Configure ESLint and Prettier for code quality
-- [ ] Set up environment variables management (.env)
-- [ ] Configure logging system (Pino)
-- [ ] Set up database (PostgreSQL/SQLite)
-- [ ] Configure Prisma ORM
-- [ ] Create database schema migrations
+- [x] Set up environment variables management (.env)
+- [x] Configure logging system (Pino)
+- [x] Set up database (SQLite)
+- [x] Configure Prisma ORM
+- [x] Create database schema migrations
+
+**Recommended Packages:**
+| Package | Purpose | Context7 Lookup |
+|---------|---------|-----------------|
+| fastify | Web framework | `fastify` |
+| @fastify/cors | CORS support | `@fastify/cors` |
+| @fastify/sensible | Error utilities | `@fastify/sensible` |
+| prisma | ORM & migrations | `prisma` |
+| @prisma/client | Database client | `prisma client` |
+| pino | Logging | `pino` |
+| zod | Validation | `zod` |
+| dotenv | Environment vars | `dotenv` |
 
 **Deliverables:**
 - Configured TypeScript project
@@ -35,16 +71,16 @@
 - Set up relationships and constraints
 
 **Tasks:**
-- [ ] Create Teachers table schema
-- [ ] Create Grades table schema
-- [ ] Create Sections table schema (with Grade FK)
-- [ ] Create Rooms table schema
-- [ ] Create Periods table schema
-- [ ] Create ScheduleEntries table schema
-- [ ] Define foreign key relationships
-- [ ] Add unique constraints for conflict prevention
-- [ ] Create database indexes for performance
-- [ ] Write seed data scripts
+- [x] Create Teachers table schema
+- [x] Create Grades table schema
+- [x] Create Sections table schema (with Grade FK)
+- [x] Create Rooms table schema
+- [x] Create Periods table schema
+- [x] Create ScheduleEntries table schema
+- [x] Define foreign key relationships
+- [x] Add unique constraints for conflict prevention
+- [x] Create database indexes for performance
+- [x] Write seed data scripts
 
 **Deliverables:**
 - Complete Prisma schema file
@@ -60,6 +96,20 @@
 ---
 
 ## PHASE 2: Core API Development (Week 2-3)
+
+### Implementation Instructions
+```
+BEFORE STARTING THIS PHASE:
+1. Use Context7 to lookup: Fastify routes, Prisma CRUD, Zod validation
+2. Use modern packages:
+   - @fastify/swagger (auto-generate API docs)
+   - @fastify/swagger-ui (interactive docs)
+   - fastify-type-provider-zod (Zod integration)
+   - @sinclair/typebox (JSON schema alternative)
+3. Use Prisma's built-in CRUD methods - don't write raw SQL
+4. Use Zod's inference for automatic TypeScript types
+5. Use fastify-plugin for modular route organization
+```
 
 ### MODULE 2.1: Teachers API
 **Objectives:**
@@ -78,6 +128,13 @@
 - [ ] Add pagination support
 - [ ] Add filtering by subject, workDays
 - [ ] Write unit tests
+
+**Recommended Packages:**
+| Package | Purpose | Context7 Lookup |
+|---------|---------|-----------------|
+| fastify-type-provider-zod | Zod + Fastify | `fastify zod` |
+| @fastify/swagger | API documentation | `@fastify/swagger` |
+| prisma-pagination | Pagination helper | `prisma pagination` |
 
 **Deliverables:**
 - Complete Teachers CRUD API
@@ -152,6 +209,19 @@
 
 ## PHASE 3: Schedule Management & Conflict Prevention (Week 4-5)
 
+### Implementation Instructions
+```
+BEFORE STARTING THIS PHASE:
+1. Use Context7 to lookup: Prisma transactions, Fastify hooks, constraint handling
+2. Use modern packages:
+   - prisma (transactions for conflict checks)
+   - date-fns (time/date utilities)
+   - http-errors (standardized errors)
+3. Use Prisma's unique constraints for database-level conflict prevention
+4. Use Fastify's preHandler hooks for validation
+5. Leverage database transactions for atomic operations
+```
+
 ### MODULE 3.1: Schedule API Core
 **Objectives:**
 - Implement schedule entry management
@@ -166,6 +236,12 @@
 - [ ] Implement DELETE /api/schedule/:id (delete)
 - [ ] Add schedule entry validation
 - [ ] Write unit tests
+
+**Recommended Packages:**
+| Package | Purpose | Context7 Lookup |
+|---------|---------|-----------------|
+| date-fns | Date/time handling | `date-fns` |
+| http-errors | Error creation | `http-errors` |
 
 **Deliverables:**
 - Basic Schedule CRUD API
@@ -227,6 +303,20 @@
 
 ## PHASE 4: Advanced Features & Optimization (Week 6)
 
+### Implementation Instructions
+```
+BEFORE STARTING THIS PHASE:
+1. Use Context7 to lookup: Prisma batch operations, CSV parsing, streaming
+2. Use modern packages:
+   - fast-csv (CSV export)
+   - json2csv (JSON to CSV conversion)
+   - @fastify/multipart (file uploads)
+   - p-limit (concurrency control)
+3. Use Prisma's createMany for bulk operations
+4. Use streaming for large exports to avoid memory issues
+5. Use database aggregations instead of JavaScript calculations
+```
+
 ### MODULE 4.1: Bulk Operations
 **Objectives:**
 - Support bulk data operations
@@ -239,6 +329,12 @@
 - [ ] Implement rollback on partial failure
 - [ ] Add progress tracking for large operations
 - [ ] Write unit tests
+
+**Recommended Packages:**
+| Package | Purpose | Context7 Lookup |
+|---------|---------|-----------------|
+| p-limit | Concurrency control | `p-limit` |
+| p-queue | Queue management | `p-queue` |
 
 **Deliverables:**
 - Bulk create endpoints
@@ -257,6 +353,13 @@
 - [ ] Add teacher/section filtering for export
 - [ ] Implement schedule template export
 - [ ] Write unit tests
+
+**Recommended Packages:**
+| Package | Purpose | Context7 Lookup |
+|---------|---------|-----------------|
+| fast-csv | CSV generation | `fast-csv` |
+| json2csv | JSON to CSV | `json2csv` |
+| xlsx | Excel export | `xlsx sheetjs` |
 
 **Deliverables:**
 - JSON export endpoint
@@ -290,6 +393,22 @@
 
 ## PHASE 5: Security, Testing & Documentation (Week 7)
 
+### Implementation Instructions
+```
+BEFORE STARTING THIS PHASE:
+1. Use Context7 to lookup: Fastify security, Vitest, OpenAPI
+2. Use modern packages:
+   - @fastify/rate-limit (rate limiting)
+   - @fastify/helmet (security headers)
+   - @fastify/jwt (JWT auth if needed)
+   - @fastify/swagger (OpenAPI docs)
+   - vitest (testing framework)
+   - supertest (HTTP testing)
+3. Use Fastify's built-in security plugins
+4. Use Vitest for fast, modern testing
+5. Auto-generate OpenAPI docs from route schemas
+```
+
 ### MODULE 5.1: Security Implementation
 **Objectives:**
 - Secure the API endpoints
@@ -303,6 +422,14 @@
 - [ ] Add helmet security headers
 - [ ] Prepare JWT authentication structure (optional)
 - [ ] Add API key support (optional)
+
+**Recommended Packages:**
+| Package | Purpose | Context7 Lookup |
+|---------|---------|-----------------|
+| @fastify/rate-limit | Rate limiting | `@fastify/rate-limit` |
+| @fastify/helmet | Security headers | `@fastify/helmet` |
+| @fastify/jwt | JWT auth | `@fastify/jwt` |
+| @fastify/auth | Auth hooks | `@fastify/auth` |
 
 **Deliverables:**
 - Secured API endpoints
@@ -322,6 +449,14 @@
 - [ ] Test database constraints
 - [ ] Set up CI/CD pipeline
 
+**Recommended Packages:**
+| Package | Purpose | Context7 Lookup |
+|---------|---------|-----------------|
+| vitest | Test runner | `vitest` |
+| supertest | HTTP testing | `supertest` |
+| @vitest/coverage-v8 | Coverage | `vitest coverage` |
+| autocannon | Load testing | `autocannon` |
+
 **Deliverables:**
 - Integration test suite
 - E2E test suite
@@ -340,6 +475,13 @@
 - [ ] Create Postman collection
 - [ ] Write API usage guide
 - [ ] Document error codes and messages
+
+**Recommended Packages:**
+| Package | Purpose | Context7 Lookup |
+|---------|---------|-----------------|
+| @fastify/swagger | OpenAPI spec | `@fastify/swagger` |
+| @fastify/swagger-ui | Swagger UI | `@fastify/swagger-ui` |
+| openapi-types | TypeScript types | `openapi types` |
 
 **Deliverables:**
 - OpenAPI specification
@@ -400,6 +542,44 @@
 | Phase 3 | Zero conflicts allowed, <50ms conflict check |
 | Phase 4 | Bulk ops handle 100+ items, exports working |
 | Phase 5 | All tests pass, docs complete, secure |
+
+---
+
+## Context7 Quick Reference
+
+When starting any phase, use these Context7 queries:
+
+```
+Phase 1:
+- "fastify typescript setup"
+- "prisma sqlite configuration"
+- "pino logging fastify"
+- "zod validation"
+
+Phase 2:
+- "fastify routes crud"
+- "prisma findMany pagination"
+- "zod schema validation fastify"
+- "@fastify/swagger setup"
+
+Phase 3:
+- "prisma unique constraints"
+- "prisma transactions"
+- "fastify preHandler validation"
+- "date-fns time comparison"
+
+Phase 4:
+- "prisma createMany bulk insert"
+- "fast-csv streaming export"
+- "prisma aggregations count"
+- "p-limit concurrency"
+
+Phase 5:
+- "@fastify/rate-limit configuration"
+- "@fastify/helmet security"
+- "vitest fastify testing"
+- "supertest api testing"
+```
 
 ---
 
